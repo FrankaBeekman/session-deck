@@ -1,0 +1,46 @@
+<style>
+  html,body{margin:0;background:transparent}
+  .wrap{width:1024px;height:1024px;display:grid;place-items:center}
+  .squircle{
+    width:832px;height:832px;
+    border-radius:186px;
+    background:linear-gradient(160deg,#b03459 0%,#7d1f3f 52%,#5e1730 100%);
+    box-shadow:0 24px 60px rgba(0,0,0,.34), inset 0 3px 0 rgba(255,255,255,.16);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:1fr 1fr;
+    gap:52px;
+    padding:132px 116px;
+    box-sizing:border-box;
+  }
+  .tile{
+    border-radius:34px;
+    background:rgba(255,244,247,.90);
+    box-shadow:0 6px 14px rgba(50,8,22,.30);
+    position:relative;
+    overflow:hidden;
+  }
+  /* the status rail each tile carries */
+  .tile::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:22px;
+    background:#5e1730;opacity:.30;
+  }
+  /* two text ribs, so a tile reads as content not a blank chip */
+  .tile::after{
+    content:"";position:absolute;left:60px;right:34px;top:52px;height:20px;
+    border-radius:10px;background:#5e1730;opacity:.26;
+    box-shadow:0 46px 0 rgba(94,23,48,.16);
+  }
+  /* the one blocked session */
+  .tile.alert{background:#f7a83a;box-shadow:0 6px 18px rgba(50,8,22,.38)}
+  .tile.alert::before{background:#8a4a05;opacity:.55;width:30px}
+  .tile.alert::after{background:#8a4a05;opacity:.42;box-shadow:0 46px 0 rgba(138,74,5,.26)}
+</style>
+<div class="wrap">
+  <div class="squircle">
+    <div class="tile"></div>
+    <div class="tile"></div>
+    <div class="tile alert"></div>
+    <div class="tile"></div>
+  </div>
+</div>

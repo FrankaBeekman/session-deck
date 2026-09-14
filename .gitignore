@@ -1,0 +1,14 @@
+node_modules/
+out/
+dist/
+
+# Icon build intermediates. The generated icon.icns and icon.png are committed
+# so a fresh clone can package without re-rendering; these are throwaway steps
+# of `build/render-icon.cjs`.
+build/icon.iconset/
+build/icon-1024.png
+
+.idea/
+.claude/
+.DS_Store
+*.log

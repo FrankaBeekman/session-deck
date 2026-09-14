@@ -1,0 +1,76 @@
+{
+  "name": "session-deck",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dashboard for Claude Code sessions across LocalWP sites",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "postinstall": "node scripts/fix-node-pty.mjs",
+    "install-hooks": "node scripts/install-hooks.mjs",
+    "print-hooks": "node scripts/install-hooks.mjs --print",
+    "fix-pty": "node scripts/fix-node-pty.mjs",
+    "dist": "electron-vite build && electron-builder --mac",
+    "pack": "electron-vite build && electron-builder --mac dir",
+    "status": "curl -s -H \"X-Deck-Token: $(cat ~/.session-deck/token)\" http://127.0.0.1:47823/sessions"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^2.3.0",
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "node-pty": "^1.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "productName": "Session Deck",
+  "build": {
+    "appId": "io.github.frankabeekman.session-deck",
+    "productName": "Session Deck",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "asarUnpack": [
+      "**/node_modules/node-pty/**"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "dir",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "identity": null,
+      "darkModeSupport": true
+    },
+    "extraResources": [
+      {
+        "from": "src/main/mcp-bridge.mjs",
+        "to": "mcp-bridge.mjs"
+      }
+    ]
+  }
+}
