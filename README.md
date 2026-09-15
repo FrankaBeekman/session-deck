@@ -1,7 +1,11 @@
 # Session Deck
 
-A macOS dashboard for Claude Code sessions running across LocalWP sites.
-Its job is one thing: make a session that is *blocked on you* announce itself.
+A desktop dashboard for Claude Code sessions running across LocalWP sites, for
+macOS and Windows. Its job is one thing: make a session that is *blocked on you*
+announce itself.
+
+> **Windows** is built but not yet verified on a Windows machine — see
+> [Windows](#windows) and [docs/windows-testing.md](docs/windows-testing.md).
 
 ## Setup
 
@@ -27,11 +31,12 @@ New Claude sessions pick it up; running ones keep their old configuration.
 ## Building a real app
 
 ```sh
-npm run dist    # -> dist/Session Deck-<version>-arm64.dmg  + dist/mac-arm64/Session Deck.app
-npm run pack    # unpacked .app only, faster
+npm run dist        # macOS -> dist/Session Deck-<version>-arm64.dmg + dist/mac-arm64/Session Deck.app
+npm run pack        # macOS, unpacked .app only, faster
+npm run dist:win    # Windows -> dist/Session Deck Setup <version>.exe (also builds on macOS)
 ```
 
-Then drag it to `/Applications` and it is Spotlight-launchable. The build is
+**macOS:** drag the app to `/Applications` and it is Spotlight-launchable. The build is
 **unsigned** (`identity: null`) -- fine for personal use, but a copy that has
 been through a download or AirDrop will carry a quarantine flag. Clear it with:
 
@@ -39,10 +44,14 @@ been through a download or AirDrop will carry a quarantine flag. Clear it with:
 xattr -dr com.apple.quarantine "/Applications/Session Deck.app"
 ```
 
+**Windows:** run the installer. It is unsigned too, so SmartScreen warns once —
+*More info* → *Run anyway*.
+
 The icon is generated, not hand-drawn: `build/icon.html` is rendered by
 `build/render-icon.cjs` (using the Electron already installed) into
-`build/icon-1024.png`, then `sips` + `iconutil` produce `build/icon.icns`.
-Edit the HTML and re-run those two steps to change it.
+`build/icon-1024.png`, then `sips` + `iconutil` produce `build/icon.icns`, and
+`build/make-ico.mjs` packs resized PNGs into `build/icon.ico` for Windows.
+Edit the HTML and re-run those steps to change it.
 
 **Window lifecycle (macOS).** Closing the window with the red button does *not*
 end your sessions -- the app stays in the dock with everything running, and
