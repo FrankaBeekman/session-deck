@@ -1,5 +1,6 @@
 import { homedir } from 'os'
 import { join, basename } from 'path'
+import { isInside, localDataDir, entryScriptName, tildify as tildifyPath } from './platform.js'
 import { readFileSync, existsSync } from 'fs'
 
 /** Local stores some site paths with a literal, unexpanded `~`. */
@@ -8,7 +9,7 @@ function expandTilde(p) {
   return p.startsWith('~') ? join(homedir(), p.slice(1)) : p
 }
 
-const LOCAL_DIR = join(homedir(), 'Library', 'Application Support', 'Local')
+const LOCAL_DIR = localDataDir()
 const SITES_JSON = join(LOCAL_DIR, 'sites.json')
 const SSH_ENTRY = join(LOCAL_DIR, 'ssh-entry')
 
@@ -31,7 +32,7 @@ export function listProjects() {
       // services.php.version is set on every site; the top-level phpVersion is a
       // legacy field present on only a couple of them.
       phpVersion: site.services?.php?.version ?? site.phpVersion ?? '',
-      entryScript: join(SSH_ENTRY, `${id}.sh`)
+      entryScript: join(SSH_ENTRY, entryScriptName(id))
     }))
     .filter((p) => existsSync(p.entryScript))
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -42,9 +43,7 @@ export function getProject(id) {
 }
 
 export function tildify(p) {
-  const home = homedir()
-  if (p === home) return '~'
-  return p.startsWith(home + '/') ? '~' + p.slice(home.length) : p
+  return tildifyPath(p)
 }
 
 /**
@@ -55,7 +54,7 @@ export function tildify(p) {
  */
 export function projectForDirectory(dir) {
   const site = listProjects()
-    .filter((p) => p.path && (dir === p.path || dir.startsWith(p.path + '/')))
+    .filter((p) => isInside(p.path, dir))
     .sort((a, b) => b.path.length - a.path.length)[0]
   if (site) return { ...site, cwd: dir }
   return { id: null, name: basename(dir) || dir, domain: tildify(dir), path: dir, entryScript: null, cwd: dir }

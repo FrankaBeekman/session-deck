@@ -19,7 +19,7 @@
   --idle: #7c7378;  --idle-bg: #eceaeb;
 
   --f-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --f-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --f-mono: ui-monospace, SFMono-Regular, Menlo, "Cascadia Mono", Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -788,3 +788,7 @@ body {
 .worktime { font-family: var(--f-mono); font-size: .64rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .worktime s { text-decoration: none; color: var(--line-2); }
 .worklogempty { padding: 20px 15px; }
+
+/* Windows: the OS draws a real frame and title bar, so there are no traffic
+   lights to make room for and the window is dragged by its own frame. */
+:root[data-platform="win32"] .titlebar { padding-left: 14px; -webkit-app-region: no-drag; }

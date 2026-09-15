@@ -4,26 +4,35 @@ import { homedir } from 'os'
 import { join } from 'path'
 
 /**
- * A globally installed MCP server needs a path that survives the app moving or
- * updating, so it points at ~/.session-deck/mcp-bridge.mjs. The app refreshes
- * that copy on start whenever its bundled bridge differs.
+ * Global installs need paths that survive the app moving or updating, so the
+ * MCP bridge and the Node hook client are registered from ~/.session-deck. The
+ * app refreshes those copies on start whenever its bundled versions differ.
  */
-export const BRIDGE_COPY = join(homedir(), '.session-deck', 'mcp-bridge.mjs')
+const SUPPORT_DIR = join(homedir(), '.session-deck')
+export const BRIDGE_COPY = join(SUPPORT_DIR, 'mcp-bridge.mjs')
+export const HOOK_CLIENT_COPY = join(SUPPORT_DIR, 'hook-client.mjs')
+
+function bundled(file) {
+  return app.isPackaged ? join(process.resourcesPath, file) : join(__dirname, '../../src/main', file)
+}
 
 export function bundledBridge() {
-  return app.isPackaged
-    ? join(process.resourcesPath, 'mcp-bridge.mjs')
-    : join(__dirname, '../../src/main/mcp-bridge.mjs')
+  return bundled('mcp-bridge.mjs')
 }
 
 export function installBridgeCopy() {
-  try {
-    const src = bundledBridge()
-    if (!existsSync(src)) return
-    mkdirSync(join(homedir(), '.session-deck'), { recursive: true })
-    const same = existsSync(BRIDGE_COPY) && readFileSync(BRIDGE_COPY, 'utf8') === readFileSync(src, 'utf8')
-    if (!same) copyFileSync(src, BRIDGE_COPY)
-  } catch (err) {
-    console.error('[bridge] copy failed:', err.message)
+  mkdirSync(SUPPORT_DIR, { recursive: true })
+  for (const [file, dest] of [
+    ['mcp-bridge.mjs', BRIDGE_COPY],
+    ['hook-client.mjs', HOOK_CLIENT_COPY]
+  ]) {
+    try {
+      const src = bundled(file)
+      if (!existsSync(src)) continue
+      const same = existsSync(dest) && readFileSync(dest, 'utf8') === readFileSync(src, 'utf8')
+      if (!same) copyFileSync(src, dest)
+    } catch (err) {
+      console.error(`[support] copying ${file} failed:`, err.message)
+    }
   }
 }

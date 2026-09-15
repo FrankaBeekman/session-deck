@@ -53,6 +53,37 @@ closing the last window quits.
 Dev and the packaged app share hook port 47823, so only one can own status at a
 time. The second one to start warns and keeps working rather than dying.
 
+## Windows
+
+Built but **not yet run on Windows** — see [docs/windows-testing.md](docs/windows-testing.md)
+for the checklist. `npm run dist:win` builds `dist/Session Deck Setup <version>.exe`
+(NSIS, x64, unsigned); it cross-builds from macOS, since node-pty ships a
+Windows prebuild and nothing native needs compiling.
+
+What differs, all behind `process.platform`:
+
+| | macOS | Windows |
+|---|---|---|
+| Local data | `~/Library/Application Support/Local` | `%APPDATA%\Local` |
+| Site shell | `bash <site>.sh` with `SHELL` → launcher (`exec $SHELL`) | `cmd /c launcher.cmd`: `call <site>.bat`, then `claude` |
+| Plain directory | `$SHELL -l -c launcher` | the same `.cmd`, without the `call` |
+| Finding claude/node | a login shell's `command -v` | `where` (prefers `.exe` over a `.cmd` shim) |
+| Hook command | `curl` (~10ms) | Node script `~/.session-deck/hook-client.mjs` |
+| Process list | `ps` every 5s | PowerShell `Win32_Process` every 10s |
+| Go to app | first `.app` bundle, `open -a` | first non-shell ancestor, `WScript.Shell.AppActivate` |
+| Stop | SIGTERM to the tree | `taskkill /T` |
+| Window | traffic lights over the title bar | normal frame, menu on Alt |
+
+The hook runner is a trade-off. On macOS starting node costs ~150ms against
+curl's ~10ms, on every tool call, so curl stays. On Windows it is not known
+whether hooks run under cmd.exe or Git Bash, and the curl form needs POSIX shell
+syntax — so the Node script, which works under both. Override either way with
+`npm run install-integration -- --write --hook-runner=curl|node`.
+
+Platform logic is written against injectable path and process data
+(`platform.js`, `proc.js`'s `parseWindowsProcesses`, `launch-script.js`) so the
+Windows paths are unit-testable from a Mac.
+
 ## How it works
 
 Three channels, none of which require patching Claude Code:

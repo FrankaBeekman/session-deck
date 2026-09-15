@@ -6,7 +6,8 @@ import { tmpdir, homedir } from 'os'
 import { bundledBridge } from './bridge-copy.js'
 import { resolveClaudeBin, resolveNodeBin } from './claude-bin.js'
 import { getToken, PORT } from './hooks.js'
-import { launcherScript, shq } from './launch-script.js'
+import { launcherScript, windowsLauncherScript, shq } from './launch-script.js'
+import { IS_WIN } from './platform.js'
 
 // Pinned for the session's whole life. Never resized on focus change — that is
 // what keeps Claude Code's TUI from re-flowing every time a tile is opened.
@@ -73,7 +74,7 @@ export function launchSession(project, { resumeId, cwd } = {}) {
   const sessionId = resumeId ?? randomUUID()
   mkdirSync(LAUNCHER_DIR, { recursive: true })
 
-  const launcherPath = join(LAUNCHER_DIR, `launch-${sessionId}.sh`)
+  const launcherPath = join(LAUNCHER_DIR, `launch-${sessionId}.${IS_WIN ? 'cmd' : 'sh'}`)
   const claudeBin = resolveClaudeBin()
   const workdir = cwd && existsSync(cwd) ? cwd : null
   const viaLocal = Boolean(project.entryScript && existsSync(project.entryScript))
@@ -103,18 +104,23 @@ export function launchSession(project, { resumeId, cwd } = {}) {
     'utf8'
   )
 
-  const idFlag = resumeId ? `--resume ${shq(resumeId)}` : `--session-id ${shq(sessionId)}`
   const mcpFlag = globalBridgeInstalled() ? null : mcpConfigPath
-  writeFileSync(
-    launcherPath,
-    launcherScript({ claudeBin, idFlag, mcpConfigPath: mcpFlag, workdir, shell: userShell() }),
-    'utf8'
-  )
+  const script = IS_WIN
+    ? windowsLauncherScript({
+        entryScript: viaLocal ? project.entryScript : null,
+        claudeBin,
+        sessionId,
+        resumeId,
+        mcpConfigPath: mcpFlag,
+        workdir
+      })
+    : launcherScript({ claudeBin, sessionId, resumeId, mcpConfigPath: mcpFlag, workdir, shell: userShell() })
+  writeFileSync(launcherPath, script, 'utf8')
   chmodSync(launcherPath, 0o755)
 
   const env = {
     ...process.env,
-    SHELL: viaLocal ? launcherPath : userShell(),
+    ...(IS_WIN ? {} : { SHELL: viaLocal ? launcherPath : userShell() }),
     TERM: 'xterm-256color',
     SESSION_DECK_ID: sessionId,
     SESSION_DECK_PORT: String(PORT),
@@ -130,9 +136,12 @@ export function launchSession(project, { resumeId, cwd } = {}) {
   // fail outright. Local's script and the launcher both cd where they need to.
   const valid = (d) => (d && existsSync(d) ? d : null)
   const ptyCwd = valid(workdir) ?? valid(project.path) ?? homedir()
-  const [file, args] = viaLocal
-    ? ['/bin/bash', [project.entryScript]]
-    : [userShell(), ['-l', '-c', `exec ${shq(launcherPath)}`]]
+  const [file, args] = IS_WIN
+    ? // The launcher calls Local's .bat itself, so both cases are one cmd session.
+      [process.env.ComSpec || 'cmd.exe', ['/d', '/c', launcherPath]]
+    : viaLocal
+      ? ['/bin/bash', [project.entryScript]]
+      : [userShell(), ['-l', '-c', `exec ${shq(launcherPath)}`]]
 
   const pty = spawn(file, args, { name: 'xterm-256color', cols: COLS, rows: ROWS, cwd: ptyCwd, env })
   return { sessionId, pty, launcherPath }

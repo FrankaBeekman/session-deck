@@ -15,7 +15,8 @@
     "pack": "electron-vite build && electron-builder --mac dir",
     "status": "curl -s -H \"X-Deck-Token: $(cat ~/.session-deck/token)\" http://127.0.0.1:47823/sessions",
     "preview": "electron scripts/preview/render.cjs",
-    "install-integration": "node scripts/install-integration.mjs"
+    "install-integration": "node scripts/install-integration.mjs",
+    "dist:win": "electron-vite build && electron-builder --win -c.npmRebuild=false"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
@@ -71,7 +72,28 @@
       {
         "from": "src/main/mcp-bridge.mjs",
         "to": "mcp-bridge.mjs"
+      },
+      {
+        "from": "src/main/hook-client.mjs",
+        "to": "hook-client.mjs"
       }
-    ]
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Session Deck"
+    }
   }
 }

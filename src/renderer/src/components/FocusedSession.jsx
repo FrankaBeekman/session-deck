@@ -68,7 +68,7 @@ export default function FocusedSession({ session, onClose, onShowPages, onShowDi
       term = new Terminal({
         cols,
         rows,
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, "Cascadia Mono", Consolas, monospace',
         fontSize: 12,
         theme: { background: '#100e0f', foreground: '#cdc4c9' },
         cursorBlink: true,

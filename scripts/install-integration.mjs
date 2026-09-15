@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync } from
 import { homedir } from 'os'
 import { join } from 'path'
 import { randomBytes } from 'crypto'
-import { execFileSync } from 'child_process'
+import { execFileSync, execSync } from 'child_process'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -47,18 +47,40 @@ function ensureToken() {
 // Claude Code already puts hook_event_name and session_id in the stdin JSON,
 // so the hook is a straight pass-through. `|| true` keeps a dead deck from
 // ever failing a hook and blocking the session.
+const IS_WIN = process.platform === 'win32'
+// Declared before anything calls resolveNode(): the hook command is built at
+// load time, and a later `let` would still be in its temporal dead zone.
+let cachedNode = null
+const HOOK_CLIENT_COPY = join(CONFIG_DIR, 'hook-client.mjs')
+const HOOK_CLIENT_SOURCE = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'main', 'hook-client.mjs')
+
+/**
+ * Which hook to install. macOS/Linux: curl — it costs ~10ms per hook against
+ * ~150ms for starting node, and hooks run on every tool call. Windows: the Node
+ * script, because hooks may run under cmd.exe or Git Bash and the curl form
+ * depends on POSIX shell syntax. `--hook-runner=curl|node` overrides either.
+ */
+const runnerFlag = process.argv.find((a) => a.startsWith('--hook-runner='))?.split('=')[1]
+const HOOK_RUNNER = runnerFlag === 'curl' || runnerFlag === 'node' ? runnerFlag : IS_WIN ? 'node' : 'curl'
+
 // X-Deck-Session carries the SESSION_DECK_ID the deck exported into the PTY.
 // Hooks inherit Claude's environment, so this is how the deck recognises its own
 // terminal after Claude switches session id (resume fallback, /clear, /resume).
-// Empty for sessions started outside the deck, which is fine.
-const command =
+// $PPID is the process that ran the hook — claude or a shell under it; the deck
+// walks up from there to find the claude process and its app.
+const curlCommand =
   `curl -sS -m 2 -X POST -H 'Content-Type: application/json' ` +
   `-H "X-Deck-Token: $(cat ~/.session-deck/token 2>/dev/null)" ` +
   `-H "X-Deck-Session: \${SESSION_DECK_ID:-}" ` +
-  // $PPID is the process that ran the hook — claude or a shell under it. The
-  // deck walks up from there to find the claude process and its app.
   `-H "X-Claude-Pid: $PPID" ` +
   `--data-binary @- http://127.0.0.1:${PORT}/hook >/dev/null 2>&1 || true`
+
+// Forward slashes: valid for node and for both cmd.exe and Git Bash, where
+// backslashes inside double quotes are not reliably literal.
+const slash = (p) => (IS_WIN ? p.replace(/\\/g, '/') : p)
+const nodeCommand = () => `"${slash(resolveNode())}" "${slash(HOOK_CLIENT_COPY)}"`
+
+const command = HOOK_RUNNER === 'node' ? nodeCommand() : curlCommand
 
 const entry = { matcher: '*', hooks: [{ type: 'command', command, timeout: 5 }] }
 
@@ -105,17 +127,21 @@ function main() {
   if (hooksCurrent) console.log('\nHooks: installed and current.')
   if (added.length) console.log(`\nWould add a Session Deck hook to: ${added.join(', ')}`)
   if (updated.length) console.log(`\nWould update the Session Deck hook on: ${updated.join(', ')}`)
-  if (!hooksCurrent) console.log(`\nHook command:\n  ${command}`)
+  if (!hooksCurrent) console.log(`\nHook command (${HOOK_RUNNER}):\n  ${command}`)
   console.log(mcp.change ? `\nWould ${mcp.change} the MCP server (user scope):\n  ${mcp.node} ${BRIDGE_COPY}` : '\nMCP server: installed and current.')
   console.log('')
 
   if (!write) {
     console.log('Dry run — nothing written. Re-run with --write to apply:')
-    console.log('  npm run install-integration -- --write\n')
+    console.log(`  npm run install-integration -- --write${runnerFlag ? ` --hook-runner=${HOOK_RUNNER}` : ''}\n`)
     return
   }
 
   if (!hooksCurrent) {
+    if (HOOK_RUNNER === 'node') {
+      mkdirSync(CONFIG_DIR, { recursive: true })
+      copyFileSync(HOOK_CLIENT_SOURCE, HOOK_CLIENT_COPY)
+    }
     if (existsSync(SETTINGS)) {
       const backup = `${SETTINGS}.bak-${Date.now()}`
       copyFileSync(SETTINGS, backup)
@@ -134,11 +160,13 @@ const BRIDGE_COPY = join(CONFIG_DIR, 'mcp-bridge.mjs')
 const BRIDGE_SOURCE = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'main', 'mcp-bridge.mjs')
 
 function resolveNode() {
+  if (cachedNode) return cachedNode
   try {
-    return execFileSync(process.env.SHELL || '/bin/zsh', ['-lc', 'command -v node'], { encoding: 'utf8' }).trim()
-  } catch {
-    return process.execPath
-  }
+    cachedNode = IS_WIN
+      ? execFileSync('where', ['node'], { encoding: 'utf8' }).split(/\r?\n/).map((l) => l.trim()).find((l) => /\.exe$/i.test(l))
+      : execFileSync(process.env.SHELL || '/bin/zsh', ['-lc', 'command -v node'], { encoding: 'utf8' }).trim()
+  } catch {}
+  return (cachedNode ||= process.execPath)
 }
 
 function planMcp() {
@@ -163,8 +191,14 @@ function applyMcp({ node, exists, change }) {
     return
   }
   // Registered through the Claude CLI rather than by editing ~/.claude.json.
-  if (exists) execFileSync('claude', ['mcp', 'remove', '--scope', 'user', 'session-deck'], { stdio: 'inherit' })
-  execFileSync('claude', ['mcp', 'add', '--scope', 'user', 'session-deck', '--', node, BRIDGE_COPY], { stdio: 'inherit' })
+  // On Windows `claude` may be an npm .cmd shim, which only runs through a shell
+  // — so the command is one quoted string there.
+  const claude = (args) =>
+    IS_WIN
+      ? execSync(`claude ${args.map((a) => (/[\s"]/.test(a) ? `"${a}"` : a)).join(' ')}`, { stdio: 'inherit' })
+      : execFileSync('claude', args, { stdio: 'inherit' })
+  if (exists) claude(['mcp', 'remove', '--scope', 'user', 'session-deck'])
+  claude(['mcp', 'add', '--scope', 'user', 'session-deck', '--', node, BRIDGE_COPY])
 }
 
 main()

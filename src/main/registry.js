@@ -8,14 +8,14 @@ import { getProject, projectForDirectory } from './local.js'
 import { load, save, flush } from './store.js'
 import { firstUserMessage, scanTitles } from './transcript.js'
 import { primaryRepo } from './git.js'
-import { execFile } from 'child_process'
-import { snapshot, claudeAncestor, claudeShells, appFor, killTree } from './proc.js'
+import { snapshot, claudeAncestor, claudeShells, appFor, focusApp, killTree } from './proc.js'
 import * as worklog from './worklog.js'
 
 const MAX_BUFFER = 200_000 // chars of raw PTY output kept for the focused view
 const MAX_ACTIVITY = 14 // enough for the tallest tile density
 const WEEK = 7 * 24 * 60 * 60 * 1000
-const SCAN_INTERVAL = 5000
+// Windows lists processes through PowerShell, which costs far more than ps.
+const SCAN_INTERVAL = process.platform === 'win32' ? 10_000 : 5000
 const FOREGROUND_VISIBLE_AFTER = 20_000 // a foreground command this old is worth showing too
 
 /**
@@ -549,7 +549,7 @@ class Registry extends EventEmitter {
     if (!s?.claudePid) return null
     const app = appFor(s.claudePid, await snapshot())
     if (!app) return null
-    execFile('open', ['-a', app.bundle])
+    focusApp(app)
     return app.name
   }
 

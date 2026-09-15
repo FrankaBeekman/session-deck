@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('deck', {
+  platform: process.platform,
   projects: () => ipcRenderer.invoke('deck:projects'),
   sessions: () => ipcRenderer.invoke('deck:sessions'),
   ptySize: (uid) => ipcRenderer.invoke('deck:pty-size', uid),

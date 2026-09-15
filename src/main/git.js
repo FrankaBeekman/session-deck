@@ -1,6 +1,6 @@
 import { execFile } from 'child_process'
 import { existsSync, statSync } from 'fs'
-import { dirname, join, resolve } from 'path'
+import { basename, dirname, join, resolve } from 'path'
 
 const MAX_DIFF_BYTES = 400_000
 
@@ -28,8 +28,14 @@ function git(cwd, args, { maxBuffer = MAX_DIFF_BYTES } = {}) {
 /** Nearest enclosing repo for a path, walking up to the first existing dir. */
 async function repoFor(path) {
   let dir = path
-  while (dir && dir !== '/' && !existsSync(dir)) dir = dirname(dir)
-  if (!dir || dir === '/') return null
+  // Walk up to the first existing directory. `dirname` of a root returns the
+  // root itself ("/" or "C:\\"), which is the stop condition on every platform.
+  while (dir && !existsSync(dir)) {
+    const up = dirname(dir)
+    if (up === dir) return null
+    dir = up
+  }
+  if (!dir) return null
   try {
     if (!statSync(dir).isDirectory()) dir = dirname(dir)
   } catch {
@@ -116,7 +122,7 @@ export async function statusFor(root) {
     }
   }
   files.sort((a, b) => a.path.localeCompare(b.path))
-  return { root, name: root.split('/').pop(), branch: branchRes.out.trim() || null, files }
+  return { root, name: basename(root), branch: branchRes.out.trim() || null, files }
 }
 
 /** The repo a session is most plausibly working in — for the branch chip. */
@@ -127,7 +133,7 @@ export async function primaryRepo(cwd, touchedPaths = []) {
     const root = await repoFor(p)
     if (!root) continue
     const b = await git(root, ['rev-parse', '--abbrev-ref', 'HEAD'])
-    return { root, name: root.split('/').pop(), branch: b.out.trim() || null }
+    return { root, name: basename(root), branch: b.out.trim() || null }
   }
   return null
 }

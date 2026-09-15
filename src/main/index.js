@@ -6,10 +6,14 @@ import { statSync } from 'fs'
 import { registry } from './registry.js'
 import { startHookServer, HOOK_LOG } from './hooks.js'
 import { installBridgeCopy } from './bridge-copy.js'
+import { IS_MAC, IS_WIN } from './platform.js'
 import { reposForSession, fileDiff } from './git.js'
 
 // Must run before `ready`, or the menu bar and About panel say "Electron".
 app.setName('Session Deck')
+// Windows shows toast notifications only for an app with an AppUserModelID,
+// and it must match the installer's appId.
+if (IS_WIN) app.setAppUserModelId('io.github.frankabeekman.session-deck')
 
 let win = null
 const notified = new Set()
@@ -37,12 +41,12 @@ function applyMenu() {
       label: 'Session Deck',
       submenu: [
         { role: 'about', label: 'About Session Deck' },
+        // hide / hideOthers / unhide exist only on macOS.
+        ...(IS_MAC
+          ? [{ type: 'separator' }, { role: 'hide', label: 'Hide Session Deck' }, { role: 'hideOthers' }, { role: 'unhide' }]
+          : []),
         { type: 'separator' },
-        { role: 'hide', label: 'Hide Session Deck' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
-        { type: 'separator' },
-        { role: 'quit', label: 'Quit Session Deck' }
+        { role: 'quit', label: IS_MAC ? 'Quit Session Deck' : 'Exit' }
       ]
     },
     {
@@ -78,7 +82,9 @@ function createWindow() {
     minWidth: 720,
     show: false,
     title: 'Session Deck',
-    titleBarStyle: 'hiddenInset',
+    // macOS: content runs under the traffic lights. Windows: a normal frame,
+    // with the menu bar tucked away until Alt is pressed.
+    ...(IS_MAC ? { titleBarStyle: 'hiddenInset' } : { autoHideMenuBar: true }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
