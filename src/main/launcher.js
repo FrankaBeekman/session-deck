@@ -1,11 +1,12 @@
 import { spawn } from 'node-pty'
 import { randomUUID } from 'crypto'
-import { writeFileSync, chmodSync, mkdirSync, existsSync } from 'fs'
+import { writeFileSync, chmodSync, mkdirSync, existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir, homedir } from 'os'
-import { app } from 'electron'
+import { bundledBridge } from './bridge-copy.js'
 import { resolveClaudeBin, resolveNodeBin } from './claude-bin.js'
 import { getToken, PORT } from './hooks.js'
+import { launcherScript, shq } from './launch-script.js'
 
 // Pinned for the session's whole life. Never resized on focus change — that is
 // what keeps Claude Code's TUI from re-flowing every time a tile is opened.
@@ -15,22 +16,58 @@ export const ROWS = 32
 const LAUNCHER_DIR = join(tmpdir(), 'session-deck-launchers')
 
 /**
- * The bridge ships as an extraResource so it sits on the real filesystem (node
- * has to exec it, and it must not be inside app.asar).
+ * When the tools are installed globally (`npm run install-integration`), every
+ * session already has them — passing --mcp-config as well would register a
+ * second copy of the same server.
  */
-function bridgePath() {
-  return app.isPackaged
-    ? join(process.resourcesPath, 'mcp-bridge.mjs')
-    : join(__dirname, '../../src/main/mcp-bridge.mjs')
+function globalBridgeInstalled() {
+  try {
+    const cfg = JSON.parse(readFileSync(join(homedir(), '.claude.json'), 'utf8'))
+    return Boolean(cfg.mcpServers?.['session-deck'])
+  } catch {
+    return false
+  }
 }
 
 /**
- * Local's ssh-entry script sets up PHP/MySQL/WP-CLI, cd's into the site, and
- * ends with `exec $SHELL`. Overriding SHELL makes that last line hand control
- * to Claude instead of zsh — no parsing, and it survives Local updating the
- * script. Verified against Local on 2026-09-10.
+ * Remove the variables a running Claude session exports to its children. If the
+ * deck itself was started from inside a Claude session (a terminal, a script),
+ * every session it launched inherited CLAUDECODE / CLAUDE_CODE_CHILD_SESSION and
+ * ran as that session's *child* — and child sessions are never saved as
+ * resumable transcripts, so nothing the deck launched could be reopened.
+ * CLAUDE_CONFIG_DIR is user configuration, not session state, so it stays.
  */
-export function launchSession(project, { resumeId } = {}) {
+export function scrubClaudeSession(env) {
+  for (const key of Object.keys(env)) {
+    if (key === 'CLAUDE_CONFIG_DIR') continue
+    if (key === 'CLAUDECODE' || key === 'CLAUDE_PID' || key === 'CLAUDE_EFFORT' || key.startsWith('CLAUDE_CODE_')) {
+      delete env[key]
+    }
+  }
+  return env
+}
+
+
+/** The user's own shell. Inside the PTY, SHELL is borrowed for the Local trick. */
+function userShell() {
+  const sh = process.env.SHELL
+  return sh && existsSync(sh) && !sh.includes('session-deck-launchers') ? sh : '/bin/zsh'
+}
+
+/**
+ * Two ways in:
+ *
+ * - **A Local site.** Local's ssh-entry script sets up PHP/MySQL/WP-CLI, cd's
+ *   into the site, and ends with `exec $SHELL`. Overriding SHELL makes that line
+ *   hand control to the launcher instead of zsh — no parsing, and it survives
+ *   Local rewriting the script.
+ * - **Any other directory.** No site environment to borrow, so the launcher
+ *   runs under the user's login shell.
+ *
+ * `cwd`, when given, is a directory the user chose. The launcher cd's into it
+ * *after* Local's own cd, so a folder inside a site keeps the site shell.
+ */
+export function launchSession(project, { resumeId, cwd } = {}) {
   // --resume reuses the original session id (forking is opt-in via
   // --fork-session), so a resumed session's hooks keep matching its tile.
   const sessionId = resumeId ?? randomUUID()
@@ -38,6 +75,8 @@ export function launchSession(project, { resumeId } = {}) {
 
   const launcherPath = join(LAUNCHER_DIR, `launch-${sessionId}.sh`)
   const claudeBin = resolveClaudeBin()
+  const workdir = cwd && existsSync(cwd) ? cwd : null
+  const viaLocal = Boolean(project.entryScript && existsSync(project.entryScript))
 
   // Per-session MCP config, passed with --mcp-config. Nothing global is touched,
   // and the server only exists for sessions the deck launched.
@@ -49,7 +88,7 @@ export function launchSession(project, { resumeId } = {}) {
         mcpServers: {
           'session-deck': {
             command: resolveNodeBin(),
-            args: [bridgePath()],
+            args: [bundledBridge()],
             env: {
               SESSION_DECK_ID: sessionId,
               SESSION_DECK_PORT: String(PORT),
@@ -64,18 +103,18 @@ export function launchSession(project, { resumeId } = {}) {
     'utf8'
   )
 
-  const idFlag = resumeId ? `--resume ${resumeId}` : `--session-id ${sessionId}`
+  const idFlag = resumeId ? `--resume ${shq(resumeId)}` : `--session-id ${shq(sessionId)}`
+  const mcpFlag = globalBridgeInstalled() ? null : mcpConfigPath
   writeFileSync(
     launcherPath,
-    `#!/bin/bash\nexec ${JSON.stringify(claudeBin)} ${idFlag} ` +
-      `--mcp-config ${JSON.stringify(mcpConfigPath)}\n`,
+    launcherScript({ claudeBin, idFlag, mcpConfigPath: mcpFlag, workdir, shell: userShell() }),
     'utf8'
   )
   chmodSync(launcherPath, 0o755)
 
   const env = {
     ...process.env,
-    SHELL: launcherPath,
+    SHELL: viaLocal ? launcherPath : userShell(),
     TERM: 'xterm-256color',
     SESSION_DECK_ID: sessionId,
     SESSION_DECK_PORT: String(PORT),
@@ -85,19 +124,16 @@ export function launchSession(project, { resumeId } = {}) {
   delete env.ELECTRON_RUN_AS_NODE
   delete env.NODE_ENV
   delete env.NODE_OPTIONS
+  scrubClaudeSession(env)
 
-  // The ssh-entry script cd's into the site itself, and its path is the
-  // authoritative one -- sites.json sometimes disagrees. So cwd here only has
-  // to be *valid*; a non-existent one makes posix_spawnp fail outright.
-  const cwd = project.path && existsSync(project.path) ? project.path : homedir()
+  // The PTY's cwd only has to be *valid* — a missing one makes posix_spawnp
+  // fail outright. Local's script and the launcher both cd where they need to.
+  const valid = (d) => (d && existsSync(d) ? d : null)
+  const ptyCwd = valid(workdir) ?? valid(project.path) ?? homedir()
+  const [file, args] = viaLocal
+    ? ['/bin/bash', [project.entryScript]]
+    : [userShell(), ['-l', '-c', `exec ${shq(launcherPath)}`]]
 
-  const pty = spawn('/bin/bash', [project.entryScript], {
-    name: 'xterm-256color',
-    cols: COLS,
-    rows: ROWS,
-    cwd,
-    env
-  })
-
+  const pty = spawn(file, args, { name: 'xterm-256color', cols: COLS, rows: ROWS, cwd: ptyCwd, env })
   return { sessionId, pty, launcherPath }
 }

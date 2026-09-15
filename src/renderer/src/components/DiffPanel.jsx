@@ -1,18 +1,22 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
+import BranchIcon from './BranchIcon.jsx'
 
-/** Colour a unified diff by line role. */
+const GROUPS = [
+  { key: 'conflicted', label: 'Conflicted' },
+  { key: 'staged', label: 'Staged' },
+  { key: 'unstaged', label: 'Unstaged' },
+  { key: 'untracked', label: 'Untracked' }
+]
+
 function DiffBody({ text, truncated }) {
-  const lines = text.split('\n')
   return (
     <div className="diffbody">
-      {lines.map((line, i) => {
+      {text.split('\n').map((line, i) => {
         let cls = 'dl'
-        if (line.startsWith('@@')) cls = 'dl dl--hunk'
-        else if (line.startsWith('+++') || line.startsWith('---')) cls = 'dl dl--meta'
-        else if (line.startsWith('diff --git') || line.startsWith('index ')) cls = 'dl dl--meta'
-        else if (line.startsWith('new file') || line.startsWith('deleted file')) cls = 'dl dl--meta'
-        else if (line.startsWith('+')) cls = 'dl dl--add'
-        else if (line.startsWith('-')) cls = 'dl dl--del'
+        if (line.startsWith('@@')) cls += ' dl--hunk'
+        else if (/^(\+\+\+|---|diff --git|index |new file|deleted file|similarity|rename )/.test(line)) cls += ' dl--meta'
+        else if (line.startsWith('+')) cls += ' dl--add'
+        else if (line.startsWith('-')) cls += ' dl--del'
         return (
           <div key={i} className={cls}>
             {line || ' '}
@@ -24,14 +28,16 @@ function DiffBody({ text, truncated }) {
   )
 }
 
+const sameFile = (a, b) => a && b && a.root === b.root && a.path === b.path && a.group === b.group
+
 export default function DiffPanel({ session, onClose }) {
   const [repos, setRepos] = useState(null)
-  const [selected, setSelected] = useState(null) // { root, path, untracked }
+  const [selected, setSelected] = useState(null)
   const [diff, setDiff] = useState(null)
 
   useEffect(() => {
     let alive = true
-    window.deck.gitRepos(session.id).then((r) => {
+    window.deck.gitRepos(session.uid).then((r) => {
       if (!alive) return
       setRepos(r)
       const first = r.find((repo) => repo.files.length > 0)
@@ -40,26 +46,19 @@ export default function DiffPanel({ session, onClose }) {
     return () => {
       alive = false
     }
-  }, [session.id])
+  }, [session.uid])
 
   useEffect(() => {
     if (!selected) return
     let alive = true
     setDiff(null)
-    window.deck
-      .gitDiff(selected.root, selected.path, selected.untracked)
-      .then((d) => alive && setDiff(d))
+    window.deck.gitDiff(selected.root, selected.path, selected.group).then((d) => alive && setDiff(d))
     return () => {
       alive = false
     }
   }, [selected])
 
-  const isCurrent = useCallback(
-    (root, f) => selected?.root === root && selected?.path === f.path,
-    [selected]
-  )
-
-  const totalChanges = repos?.reduce((n, r) => n + r.files.length, 0) ?? 0
+  const paths = new Set(repos?.flatMap((r) => r.files.map((f) => `${r.root}\0${f.path}`)) ?? [])
 
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -72,8 +71,8 @@ export default function DiffPanel({ session, onClose }) {
               {repos !== null && (
                 <>
                   {' '}
-                  <s>•</s> {totalChanges} file{totalChanges === 1 ? '' : 's'} across{' '}
-                  {repos.length} repo{repos.length === 1 ? '' : 's'}
+                  <s>•</s> {paths.size} file{paths.size === 1 ? '' : 's'} across {repos.length} repo
+                  {repos.length === 1 ? '' : 's'}
                 </>
               )}
             </div>
@@ -86,49 +85,66 @@ export default function DiffPanel({ session, onClose }) {
         <div className="diffsplit">
           <div className="difffiles">
             {repos === null && <p className="none">Looking for repositories…</p>}
-            {repos !== null && repos.length === 0 && (
-              <p className="none">No git repositories with changes were found for this session.</p>
-            )}
+            {repos?.length === 0 && <p className="none">No git repositories with changes were found for this session.</p>}
             {repos?.map((repo) => (
               <section key={repo.root} className="repogroup">
                 <h3 title={repo.root}>
                   <span className="reponame">{repo.name}</span>
                   {repo.touched && <span className="badge">edited</span>}
-                  {repo.branch && <span className="repobranch">{repo.branch}</span>}
                 </h3>
-                {repo.files.length === 0 ? (
-                  <p className="none none--tight">no uncommitted changes</p>
-                ) : (
-                  <ul>
-                    {repo.files.map((f) => (
-                      <li key={f.path}>
-                        <button
-                          type="button"
-                          className={isCurrent(repo.root, f) ? 'current' : ''}
-                          onClick={() => setSelected({ root: repo.root, ...f })}
-                          title={f.path}
-                        >
-                          <span className={`code code--${f.code === '?' ? 'u' : f.code}`}>
-                            {f.code}
-                          </span>
-                          <span className="fpath">{f.path}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                {repo.branch && (
+                  <p className="repobranch" title={repo.branch}>
+                    <BranchIcon /> {repo.branch}
+                  </p>
                 )}
+                {repo.files.length === 0 && <p className="none none--tight">no uncommitted changes</p>}
+                {GROUPS.map(({ key, label }) => {
+                  const files = repo.files.filter((f) => f.group === key)
+                  if (!files.length) return null
+                  return (
+                    <div key={key} className={`statusgroup statusgroup--${key}`}>
+                      <h4>
+                        {label} <span>{files.length}</span>
+                      </h4>
+                      <ul>
+                        {files.map((f) => {
+                          const item = { root: repo.root, ...f }
+                          return (
+                            <li key={`${key}:${f.path}`}>
+                              <button
+                                type="button"
+                                className={sameFile(selected, item) ? 'current' : ''}
+                                onClick={() => setSelected(item)}
+                                title={`${f.label}: ${f.path}`}
+                              >
+                                <span className={`code code--${f.code === '?' ? 'u' : f.code}`}>{f.code}</span>
+                                <span className="fpath">{f.path}</span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )
+                })}
               </section>
             ))}
           </div>
 
           <div className="diffpane">
+            {selected && (
+              <div className="diffcaption">
+                <span className={`groupchip groupchip--${selected.group}`}>{selected.group}</span>
+                <span className="fpath">{selected.path}</span>
+              </div>
+            )}
             {!selected && <p className="none">Select a file to see its diff.</p>}
             {selected && diff === null && <p className="none">Loading diff…</p>}
             {selected && diff?.error && <p className="none">Could not diff: {diff.error}</p>}
-            {selected && diff && !diff.error && diff.text.trim() === '' && (
+            {selected && diff && !diff.error && !diff.text.trim() && (
               <p className="none">No textual changes (mode change, or binary file).</p>
             )}
-            {selected && diff && !diff.error && diff.text.trim() !== '' && (
+            {selected && diff && !diff.error && diff.text.trim() && (
               <DiffBody text={diff.text} truncated={diff.truncated} />
             )}
           </div>

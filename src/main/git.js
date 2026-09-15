@@ -78,10 +78,17 @@ async function scanForRepos(cwd) {
 }
 
 const STATUS_LABEL = {
-  M: 'modified', A: 'added', D: 'deleted',
-  R: 'renamed', C: 'copied', U: 'conflicted', '?': 'untracked'
+  M: 'modified', A: 'added', D: 'deleted', R: 'renamed',
+  C: 'copied', U: 'conflicted', T: 'type changed', '?': 'untracked'
 }
 
+const CONFLICT_PAIRS = new Set(['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'])
+
+/**
+ * Porcelain gives two status letters per path: X for the index, Y for the
+ * working tree. A file can be staged *and* have further unstaged edits ("MM"),
+ * so it can legitimately appear in both groups -- each with its own diff.
+ */
 export async function statusFor(root) {
   const [statusRes, branchRes] = await Promise.all([
     git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all']),
@@ -98,17 +105,31 @@ export async function statusFor(root) {
     const path = entry.slice(3)
     let from = null
     if (x === 'R' || x === 'C') from = parts[++i] ?? null
-    const code = x !== ' ' && x !== '?' ? x : y
-    files.push({
-      path, from,
-      staged: x !== ' ' && x !== '?',
-      untracked: x === '?',
-      code,
-      label: STATUS_LABEL[code] ?? 'changed'
-    })
+    const push = (group, code) =>
+      files.push({ path, from, group, code, label: STATUS_LABEL[code] ?? 'changed' })
+
+    if (x === '?' && y === '?') push('untracked', '?')
+    else if (CONFLICT_PAIRS.has(x + y)) push('conflicted', 'U')
+    else {
+      if (x !== ' ') push('staged', x)
+      if (y !== ' ') push('unstaged', y)
+    }
   }
   files.sort((a, b) => a.path.localeCompare(b.path))
   return { root, name: root.split('/').pop(), branch: branchRes.out.trim() || null, files }
+}
+
+/** The repo a session is most plausibly working in — for the branch chip. */
+export async function primaryRepo(cwd, touchedPaths = []) {
+  const candidates = [...touchedPaths].reverse()
+  if (cwd) candidates.push(cwd)
+  for (const p of candidates) {
+    const root = await repoFor(p)
+    if (!root) continue
+    const b = await git(root, ['rev-parse', '--abbrev-ref', 'HEAD'])
+    return { root, name: root.split('/').pop(), branch: b.out.trim() || null }
+  }
+  return null
 }
 
 /**
@@ -138,11 +159,14 @@ export async function reposForSession(cwd, touchedPaths = []) {
     .sort((a, b) => Number(b.touched) - Number(a.touched) || a.name.localeCompare(b.name))
 }
 
-export async function fileDiff(root, path, { untracked = false } = {}) {
+export async function fileDiff(root, path, { group = 'unstaged' } = {}) {
   if (!root) return { text: '', truncated: false, error: 'No repository' }
-  const args = untracked
-    ? ['diff', '--no-index', '--no-color', '--', '/dev/null', path]
-    : ['diff', 'HEAD', '--no-color', '--', path]
+  const args =
+    group === 'untracked'
+      ? ['diff', '--no-index', '--no-color', '--', '/dev/null', path]
+      : group === 'staged'
+        ? ['diff', '--cached', '--no-color', '--', path]
+        : ['diff', '--no-color', '--', path]
   const r = await git(root, args)
   if (!r.ok && !r.out) return { text: '', truncated: false, error: r.err }
   return {

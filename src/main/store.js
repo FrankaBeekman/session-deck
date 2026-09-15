@@ -14,7 +14,7 @@ const DIR = join(homedir(), '.session-deck')
 const FILE = join(DIR, 'store.json')
 const TMP = join(DIR, 'store.json.tmp')
 
-const EMPTY = { version: 1, testPages: {}, sessions: {} }
+const EMPTY = { version: 1, testPages: {}, sessions: {}, names: {}, recentDirs: [] }
 
 export function load() {
   try {
@@ -24,7 +24,9 @@ export function load() {
       ...structuredClone(EMPTY),
       ...parsed,
       testPages: parsed.testPages ?? {},
-      sessions: parsed.sessions ?? {}
+      sessions: parsed.sessions ?? {},
+      names: parsed.names ?? {},
+      recentDirs: parsed.recentDirs ?? []
     }
   } catch (err) {
     console.error('[store] unreadable, starting empty:', err.message)

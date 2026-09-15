@@ -1,9 +1,11 @@
 import { app, BrowserWindow, ipcMain, Notification, shell, Menu, nativeImage, dialog } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
-import { listProjects, getProject } from './local.js'
-import { registry, COLS, ROWS } from './registry.js'
-import { startHookServer } from './hooks.js'
+import { listProjects, getProject, projectForDirectory, tildify } from './local.js'
+import { statSync } from 'fs'
+import { registry } from './registry.js'
+import { startHookServer, HOOK_LOG } from './hooks.js'
+import { installBridgeCopy } from './bridge-copy.js'
 import { reposForSession, fileDiff } from './git.js'
 
 // Must run before `ready`, or the menu bar and About panel say "Electron".
@@ -119,6 +121,10 @@ function notifyBlocked(sessions) {
 }
 
 app.whenReady().then(() => {
+  // Keep the globally installed MCP bridge (if any) in step with this app version.
+  installBridgeCopy()
+  // One-off: build the hours list from hook history that predates it.
+  setTimeout(() => registry.backfillWorklog(HOOK_LOG), 1500)
   applyDevIcon()
   applyMenu()
   startHookServer(() => {
@@ -145,9 +151,43 @@ app.whenReady().then(() => {
 
   ipcMain.handle('deck:projects', () => listProjects())
   ipcMain.handle('deck:sessions', () => registry.serialize())
-  ipcMain.handle('deck:pty-size', () => ({ cols: COLS, rows: ROWS }))
+  ipcMain.handle('deck:pty-size', (_e, uid) => registry.ptySize(uid))
+  ipcMain.on('deck:resize', (_e, { uid, cols, rows }) => registry.resize(uid, cols, rows))
+  ipcMain.handle('deck:stop-process', (_e, { uid, pid }) => registry.stopProcess(uid, pid))
+  ipcMain.handle('deck:focus-app', (_e, uid) => registry.focusApp(uid))
+  ipcMain.on('deck:todo-add', (_e, { uid, text }) => registry.addTodo(uid, text, 'user'))
+  ipcMain.on('deck:todo-toggle', (_e, { projectKey, todoId }) => registry.toggleTodo(projectKey, todoId))
+  ipcMain.on('deck:todo-remove', (_e, { projectKey, todoId }) => registry.removeTodo(projectKey, todoId))
+  ipcMain.handle('deck:worklog-days', () => registry.worklogDays())
+  ipcMain.handle('deck:worklog', (_e, day) => registry.worklogFor(day))
 
-  ipcMain.handle('deck:resume', (_e, sessionId) => registry.resume(sessionId)?.id ?? null)
+  ipcMain.handle('deck:resume', (_e, sessionId) => registry.reopen(sessionId)?.id ?? null)
+  ipcMain.on('deck:rename', (_e, { sessionId, name }) => registry.setName(sessionId, name, 'user'))
+
+  ipcMain.handle('deck:choose-directory', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title: 'Start a session in a directory',
+      buttonLabel: 'Start session here',
+      properties: ['openDirectory', 'createDirectory']
+    })
+    return canceled ? null : (filePaths[0] ?? null)
+  })
+
+  ipcMain.handle('deck:launch-directory', (_e, dir) => {
+    let ok = false
+    try {
+      ok = statSync(dir).isDirectory()
+    } catch {}
+    if (!ok) throw new Error(`Not a directory: ${dir}`)
+    return registry.launchDirectory(dir).deckId
+  })
+
+  ipcMain.handle('deck:recent-directories', () =>
+    registry.recentDirectories().map((dir) => {
+      const project = projectForDirectory(dir)
+      return { path: dir, display: tildify(dir), name: project.name, site: project.id ? project.name : null }
+    })
+  )
 
   ipcMain.handle('deck:launch', (_e, projectId) => {
     const project = getProject(projectId)
@@ -156,16 +196,14 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('deck:git-repos', async (_e, sessionId) => {
-    const s = registry.get(sessionId)
+    const s = registry.resolve(sessionId)
     if (!s) return []
     return reposForSession(s.cwd ?? s.project.path, s.touched ?? [])
   })
 
-  ipcMain.handle('deck:git-diff', (_e, { root, path, untracked }) =>
-    fileDiff(root, path, { untracked })
-  )
+  ipcMain.handle('deck:git-diff', (_e, { root, path, group }) => fileDiff(root, path, { group }))
 
-  ipcMain.handle('deck:buffer', (_e, sessionId) => registry.get(sessionId)?.buffer ?? '')
+  ipcMain.handle('deck:buffer', (_e, sessionId) => registry.resolve(sessionId)?.buffer ?? '')
   ipcMain.on('deck:write', (_e, { sessionId, data }) => registry.write(sessionId, data))
   ipcMain.on('deck:close', (_e, sessionId) => registry.close(sessionId))
   ipcMain.on('deck:remove', (_e, sessionId) => registry.remove(sessionId))
@@ -189,7 +227,7 @@ app.on('window-all-closed', () => {
 // Sessions are children of this process, so quitting really does take them with
 // it. Their UUIDs survive, so v1.5 can offer `claude --resume <uuid>`.
 app.on('before-quit', () => {
-  // Synchronous — a debounced write would never fire during shutdown.
-  registry.flushStore()
-  for (const s of registry.serialize()) registry.close(s.id)
+  // Kills every PTY without marking it ended (so it returns as Interrupted),
+  // then writes the store synchronously — a debounced write never fires here.
+  registry.shutdown()
 })

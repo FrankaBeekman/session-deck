@@ -6,14 +6,23 @@ Its job is one thing: make a session that is *blocked on you* announce itself.
 ## Setup
 
 ```sh
-npm install                      # postinstall rebuilds node-pty for Electron
-npm run install-hooks            # dry run — shows what it would add
-npm run install-hooks -- --write # actually merge into ~/.claude/settings.json
+npm install                               # postinstall fixes node-pty's spawn-helper
+npm run install-integration               # dry run — shows what it would change
+npm run install-integration -- --write    # apply
 npm run dev
 ```
 
-The hook installer backs up `~/.claude/settings.json` before touching it, and
-skips any event that already has a Session Deck hook.
+`install-integration` (alias: `install-hooks`) sets up Claude Code for **every**
+session, including ones started outside the deck:
+
+1. **Hooks** in `~/.claude/settings.json` — status, plus the headers that tie a
+   terminal to its tile (`X-Deck-Session`) and to its Claude process
+   (`X-Claude-Pid`). Existing deck hooks are updated in place; the file is backed
+   up first.
+2. **The MCP server** at user scope, via `claude mcp add` — pointing at
+   `~/.session-deck/mcp-bridge.mjs`, a stable copy the app refreshes on start.
+
+New Claude sessions pick it up; running ones keep their old configuration.
 
 ## Building a real app
 
@@ -71,11 +80,22 @@ only in the focused view, at the PTY's pinned 120×32, and is disposed on close.
 
 ## The MCP server
 
-`src/main/mcp-bridge.mjs` is a dependency-free stdio JSON-RPC server exposing two
-tools:
+`src/main/mcp-bridge.mjs` is a dependency-free stdio JSON-RPC server:
 
-- `set_session_name(name)` -- names the tile
-- `report_test_page(url, title?)` -- adds the clickable link under the terminal
+- `set_session_name(name)` — names the tile
+- `report_test_page(url, title?)` — the test page link
+- `report_pull_request(url, title?)` — the PR link. Reported rather than looked
+  up: the repos are on Bitbucket, which needs an API token to query.
+- `add_user_todo(text)` — an item on the user's after-Claude checklist
+
+Its handshake also returns `instructions` saying *when* to use each tool — that is
+what gets Claude to call them unprompted, without a separate skill. A session
+launched by the deck passes the server with `--mcp-config` unless it is already
+installed globally, so no session gets two copies.
+
+A deck-launched bridge identifies itself by `SESSION_DECK_ID`. A globally
+installed one has no deck env, so it sends its parent pid; the deck walks up to
+the `claude` process, which the hooks have already tied to a session.
 
 It is wired **per session** via `claude --mcp-config <tmpfile>`, written at launch
 alongside the shell launcher. Nothing global is registered, and the server exists
@@ -171,31 +191,126 @@ So the panel does not resolve "the" repo. It finds repos two ways:
 Repos with no changes *and* no edits are dropped, so the panel does not list ten
 clean vendored plugins. Edited repos sort first and are badged.
 
-Left pane: repos and their changed files. Right pane: unified diff, coloured by
+Left pane: repos, each split into **Conflicted / Staged / Unstaged / Untracked**.
+A file staged with further unstaged edits appears in both groups, each with its
+own diff (`--cached` versus working tree). Right pane: unified diff, coloured by
 line role. Untracked files diff against `/dev/null` so a new file shows as fully
 added. Diffs are capped at 400KB and marked when truncated.
 
-## Closing vs removing
+## Closing, reopening, removing
 
-Two different operations, which an earlier version conflated:
+- **End session** kills the PTY. The tile stays as *Closed*, across restarts too.
+- **Reopen / Resume** runs `claude --resume` for a Closed or Interrupted tile.
+  Offered only when its transcript exists — resuming a missing conversation makes
+  Claude fall back to a fresh session or the resume picker.
+- **Remove from deck** drops the tile and forgets it entirely.
 
-- **End session** kills the PTY. The tile stays, showing *Closed*, so you can see
-  what happened.
-- **Remove from deck** drops the tile. It kills the PTY first if one is still
-  running, and marks the durable record ended so the session does not come back
-  as *Interrupted* after a restart.
+On startup, records are pruned only when they could never be reopened: the Local
+site is gone, the conversation cannot be found, or it has been idle for a week.
 
 Any tile with nothing running behind it — closed, adopted, or interrupted —
 carries a dismiss (×) in its corner. Live sessions do not: removing one kills it,
 and that should stay a deliberate act from inside the session view.
+
+## Starting a session in a directory
+
+**New session** has two tabs: *Local site* and *Directory*. A directory comes from
+the native folder picker or the recent list (last 8).
+
+- **Inside a Local site** the session still gets that site's shell — WP-CLI, the
+  site's PHP — just started in the chosen folder. Local's ssh-entry script does
+  its own `cd`, then execs the launcher, which `cd`s into the chosen folder.
+- **Anywhere else** the launcher runs under the user's login shell (`$SHELL -l`).
+
+The chosen folder is remembered separately from the live `cwd`, because Claude
+files a conversation under the directory it started in: reopening has to start
+there again, while a site session must not be forced out of the `app/public`
+Local lands in. The launcher text lives in `launch-script.js`, free of Electron
+imports, so it can be tested directly.
+
+The launcher also restores the real `$SHELL` before starting Claude — the Local
+trick borrows `SHELL`, and Claude used to inherit the launcher path as its shell.
+
+## Processes, apps and hours
+
+**Background processes.** Every 5s one `ps` call covers all sessions. Claude runs
+each Bash call as a direct child shell (`… && eval '<command>'`); those whose
+command matches a `run_in_background` call from the hooks are listed as
+background, with their task id, plus foreground commands running over 20s.
+**Stop** sends SIGTERM to the shell and its descendants — never the process
+group, which could include Claude itself.
+
+**Go to app.** For an external session the deck walks up from its `claude`
+process to the first `.app` bundle (Terminal, iTerm, PhpStorm…) and runs
+`open -a` on it. The claude process is resolved *while the hook request is in
+flight* — the response is held until it is, because the shell a hook reports
+exits right after, leaving nothing to walk up from.
+
+**Checklist.** Things the user must do once Claude is done, per project: added by
+Claude through `add_user_todo`, or by hand.
+
+**Worked on.** Active time per session per day, grouped by ticket (parsed from
+prompts, names and branches), for logging hours by hand. A silence over 10
+minutes ends a block. Stored as compact blocks in `store.json`, built once from
+the hook log's history. **Local only** — nothing is sent anywhere.
+
+**The hook log** keeps what explains behaviour and drops bulk (Write/Edit
+payloads carried whole files), and rotates at 20MB.
+
+**The focused terminal** is large by default and drag-resizable; it refits to the
+dialog and resizes the PTY only when the grid actually changes.
+
+## A session's id is not stable
+
+Claude switches session id mid-terminal: a resume that falls back to a fresh
+session, the resume picker, `/resume`, `/clear`. Keying tiles on the id the deck
+minted therefore produced duplicate tiles — the real session got adopted as
+external under its new id.
+
+Hooks inherit Claude's environment, which contains the `SESSION_DECK_ID` the deck
+exported into the PTY. The hook command sends it as `X-Deck-Session`, and the deck
+re-binds the tile to whatever id the session now reports, absorbing any duplicate
+adopted in the meantime. `SessionEnd` with reason `clear` or `resume` is treated
+as a switch, not an end. The UI keys on a stable `uid` (the deck id) so an open
+terminal survives the switch.
+
+This needs the current hook command — re-run `npm run install-integration -- --write`
+after upgrading. It updates existing deck hooks in place.
+
+## Launching the deck from inside a Claude session
+
+A running Claude session exports `CLAUDECODE`, `CLAUDE_CODE_CHILD_SESSION`,
+`CLAUDE_CODE_SESSION_ID` and more to everything it starts. If the deck was started
+from such a shell, every session it launched inherited them and ran as a *child*
+session — and child sessions are never saved as resumable transcripts. The
+launcher strips these variables from each PTY (keeping `CLAUDE_CONFIG_DIR`), so
+this holds however the app was started.
+
+## Session names
+
+Sources, in increasing priority: the first prompt, Claude's `set_session_name`
+MCP call, and a user rename. User renames come from either the deck
+(click a name — the pencil cursor marks it — on a tile or in the focused view) or `/rename` inside
+Claude, which the deck reads incrementally from the transcript's `custom-title`
+entries; between those two the latest wins. Deck renames are stored in
+`store.json`. They do not rename the session inside Claude.
 
 ## Diagnostics
 
 ```sh
 npm run status                    # token-gated GET /sessions
 cat ~/.session-deck/hooks.jsonl   # every raw hook payload received
-cat ~/.session-deck/store.json    # durable state (test pages)
+cat ~/.session-deck/store.json    # durable state (sessions, names, test pages)
+npm run build && npm run preview -- deck out.png   # render the UI with fixture data
 ```
+
+`npm run preview -- <scenario> <out.png> [w] [h]` renders the built renderer with
+fixture data (`scripts/preview/fixtures.cjs`) and clicks through real UI to reach
+a state: `deck`, `tall`, `focused`, `closed`, `diff`, `pages`, `new`, `newdir`,
+`todos`, `procs`, `worklog`. Transitions are
+disabled so a capture shows end states. It exists because layout bugs were
+invisible from code — the deck's grid shrank every tile to fit the window rather
+than scrolling, and only a screenshot showed it.
 
 ## Layout
 

@@ -1,5 +1,5 @@
 import { homedir } from 'os'
-import { join } from 'path'
+import { join, basename } from 'path'
 import { readFileSync, existsSync } from 'fs'
 
 /** Local stores some site paths with a literal, unexpanded `~`. */
@@ -39,4 +39,24 @@ export function listProjects() {
 
 export function getProject(id) {
   return listProjects().find((p) => p.id === id) ?? null
+}
+
+export function tildify(p) {
+  const home = homedir()
+  if (p === home) return '~'
+  return p.startsWith(home + '/') ? '~' + p.slice(home.length) : p
+}
+
+/**
+ * The project for a session started in a chosen directory. Inside a Local site
+ * it is that site — so the session still gets the site shell with WP-CLI and the
+ * right PHP — just started in the chosen folder. The most specific site wins.
+ * Anywhere else it is a plain directory project, keyed by its path.
+ */
+export function projectForDirectory(dir) {
+  const site = listProjects()
+    .filter((p) => p.path && (dir === p.path || dir.startsWith(p.path + '/')))
+    .sort((a, b) => b.path.length - a.path.length)[0]
+  if (site) return { ...site, cwd: dir }
+  return { id: null, name: basename(dir) || dir, domain: tildify(dir), path: dir, entryScript: null, cwd: dir }
 }

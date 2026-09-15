@@ -1,3 +1,5 @@
+import { ago } from '../lib/format.js'
+
 /**
  * Every test page recorded for a project, newest first. These accumulate across
  * sessions and survive restarts, so this is also where they get tidied up.
@@ -5,18 +7,11 @@
 export default function TestPagesPanel({ project, projectKey, pages, onClose }) {
   const sorted = [...pages].sort((a, b) => b.at - a.at)
 
-  const when = (ts) => {
-    const mins = Math.round((Date.now() - ts) / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hrs = Math.round(mins / 60)
-    if (hrs < 24) return `${hrs}h ago`
-    return `${Math.round(hrs / 24)}d ago`
-  }
+  const when = ago
 
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="picker" role="dialog" aria-modal="true" aria-label="Test pages">
+      <div className="picker pagespanel" role="dialog" aria-modal="true" aria-label="Test pages">
         <div className="fhead">
           <div>
             <div className="sname">Test pages</div>
@@ -29,17 +24,19 @@ export default function TestPagesPanel({ project, projectKey, pages, onClose }) 
           </button>
         </div>
 
-        <ul className="plist">
+        <ul className="pagelist">
           {sorted.map((p) => (
-            <li key={p.id} className="pagerow">
+            <li key={p.id}>
               <button
                 type="button"
+                className="pageopen"
                 onClick={() => window.deck.openExternal(p.url)}
                 title={p.url}
               >
-                <span className="sname">{p.title}</span>
-                <span className="pname">
-                  {when(p.at)} <s>•</s> {p.sessionName ?? 'unnamed session'}
+                <span className="pagetitle">{p.title}</span>
+                <span className="pagemeta">
+                  {when(p.at)} <s>•</s> {p.sessionName ?? 'unnamed session'} <s>•</s>{' '}
+                  {p.url.replace(/^https?:\/\//, '')}
                 </span>
               </button>
               <button
