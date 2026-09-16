@@ -76,6 +76,10 @@
       {
         "from": "src/main/hook-client.mjs",
         "to": "hook-client.mjs"
+      },
+      {
+        "from": "resources/backgrounds",
+        "to": "backgrounds"
       }
     ],
     "win": {

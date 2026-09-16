@@ -596,6 +596,40 @@ class Registry extends EventEmitter {
     return worklog.summarize(this.store.worklog, day)
   }
 
+  // --------------------------------------------------------------- tickets
+
+  /**
+   * The ticket a session is on, from its branch (feature/EXC-207-…) or its name.
+   * Linked only once a base URL is known — learned from any ticket URL pasted
+   * into a prompt, or set in Appearance. Read-only: a link, nothing else.
+   */
+  ticketFor(session) {
+    const key = worklog.ticketsIn(`${session.branch ?? ''} ${session.name ?? ''}`)[0] ?? null
+    if (!key) return null
+    const base = this.store.ticketBase
+    return { key, url: base ? `${base.replace(/\/+$/, '')}/${key}` : null }
+  }
+
+  learnTicketBase(text) {
+    if (this.store.ticketBase) return
+    const m = String(text ?? '').match(/https?:\/\/[^\s"'<>]+\/browse\//i)
+    if (!m) return
+    this.store.ticketBase = m[0].replace(/\/+$/, '')
+    save(this.store)
+  }
+
+  setTicketBase(url) {
+    const clean = String(url ?? '').trim().replace(/\/+$/, '')
+    this.store.ticketBase = clean || null
+    save(this.store)
+    this.emit('change', this.serialize())
+    return this.store.ticketBase
+  }
+
+  ticketBase() {
+    return this.store.ticketBase ?? null
+  }
+
   // ---------------------------------------------------------- pull requests
 
   addPullRequest(id, { url, title }) {
@@ -763,6 +797,7 @@ class Registry extends EventEmitter {
       repoName: s.repoName,
       testPages: this.pagesFor(s.project),
       pullRequest: this.pullRequestFor(s),
+      ticket: this.ticketFor(s),
       todos: this.store.todos[this.projectKey(s.project)] ?? [],
       processes: s.processes,
       finished: s.finished,

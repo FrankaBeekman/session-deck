@@ -108,6 +108,8 @@ function apply(payload, deckId, claudePid) {
       // A tile should never read "Untitled session". The first prompt is a
       // decent name immediately; anything better outranks it later.
       if (!session.name) registry.setName(session.id, nameFromPrompt(payload.prompt), 'prompt')
+      // A pasted ticket URL teaches the deck where tickets live.
+      registry.learnTicketBase(payload.prompt)
       registry.pushActivity(session, `> ${String(payload.prompt ?? '').slice(0, 70)}`)
       break
     }

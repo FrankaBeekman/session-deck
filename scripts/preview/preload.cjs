@@ -14,6 +14,31 @@ contextBridge.exposeInMainWorld('deck', {
     { path: '/Users/me/Local Sites/example-corporate/app/public/wp-content/themes/example-theme', display: '~/Local Sites/example-corporate/app/public/wp-content/themes/example-theme', name: 'example-theme', site: 'example-corporate' }
   ],
   chooseDirectory: async () => null,
+  backgrounds: async () => {
+    const { nativeImage } = require('electron')
+    const { readdirSync, existsSync } = require('fs')
+    const { join, basename, extname } = require('path')
+    const dir = join(__dirname, '..', '..', 'resources', 'backgrounds')
+    if (!existsSync(dir)) return { dir: null, images: [] }
+    const files = readdirSync(dir).filter((f) => /\.(png|jpe?g|webp)$/i.test(f)).sort()
+    return {
+      dir,
+      images: files.map((f) => {
+        const path = join(dir, f)
+        const name = basename(f, extname(f)).replace(/^\d+[-_]/, '').replace(/[-_]+/g, ' ')
+        return {
+          path,
+          label: name.charAt(0).toUpperCase() + name.slice(1),
+          file: f,
+          thumb: nativeImage.createFromPath(path).resize({ width: 220 }).toDataURL(),
+          url: `deckbg://img/${encodeURIComponent(path)}`
+        }
+      })
+    }
+  },
+  chooseBackground: async () => null,
+  ticketBase: async () => 'https://example.atlassian.net/browse',
+  setTicketBase: async (v) => v,
   worklogDays: async () => ['2026-09-15', '2026-09-14'],
   worklog: async (day) => ({ day, totalMinutes: 297, rows: [
     { key: 'a', project: 'example-corporate', name: 'Quotation template redesign', ticket: 'EXC-207', minutes: 102, first: Date.now() - 6.2 * 3600e3, last: Date.now() - 4.1 * 3600e3, blocks: 6 },

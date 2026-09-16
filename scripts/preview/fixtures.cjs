@@ -24,7 +24,7 @@ const base = (o) => ({
   activity: [], question: null, questionKind: null, testPages: [],
   branch: null, repoName: null, startedAt: now - 90 * min, updatedAt: now,
   projectKey: 'site-a', canReopen: false, nameSource: 'prompt',
-  pullRequest: null, todos: [], processes: [], finished: [], appName: null,
+  pullRequest: null, ticket: null, todos: [], processes: [], finished: [], appName: null,
   ...o, uid: o.id
 })
 
@@ -35,6 +35,7 @@ exports.sessions = [
     activity: ['> add a department filter to the vacancy block', 'Read  block.json', 'Grep  get_terms', 'Read  class-vacancy-query.php', 'Edit  render.php', 'Edit  edit.js', 'Bash  npm run build', 'Read  block.json', 'Edit  _vacancy-filter.scss', 'Bash  wp post create --post_type=page'],
     question: 'Claude needs your permission to use Bash', questionKind: 'permission_prompt',
     testPages: pages(6), branch: 'feature/EXC-207-vacancy-filter', repoName: 'example-theme',
+    ticket: { key: 'EXC-207', url: 'https://example.atlassian.net/browse/EXC-207' },
     pullRequest: { url: 'https://bitbucket.org/example/example-theme/pull-requests/42', title: 'EXC-207 Vacancy department filter', branch: 'feature/EXC-207-vacancy-filter', at: now - 20 * min },
     todos: [
       { id: 't1', text: 'Clear the page cache on staging after deploying', done: false, at: now - 30 * min, sessionName: 'Vacancy filter block with department facets', source: 'claude' },
@@ -51,7 +52,8 @@ exports.sessions = [
     id: 's2', name: 'Accessible form labels', status: 'working',
     project: { id: 'site-b', name: 'example-foundation', domain: 'example-foundation.test' },
     activity: ['> fix the contact form label associations', 'Edit  block-contact-form.php', 'Edit  _form.scss', 'Bash  npm run build'],
-    branch: 'bugfix/EXF-88-form-labels', repoName: 'foundation-plugin'
+    branch: 'bugfix/EXF-88-form-labels', repoName: 'foundation-plugin',
+    ticket: { key: 'EXF-88', url: null }
   }),
   base({
     id: 's3', name: 'Clear PHP 8.3 deprecations', status: 'done',

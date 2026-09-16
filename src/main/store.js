@@ -14,7 +14,7 @@ const DIR = join(homedir(), '.session-deck')
 const FILE = join(DIR, 'store.json')
 const TMP = join(DIR, 'store.json.tmp')
 
-const EMPTY = { version: 1, testPages: {}, sessions: {}, names: {}, recentDirs: [] }
+const EMPTY = { version: 1, testPages: {}, sessions: {}, names: {}, recentDirs: [], ticketBase: null }
 
 export function load() {
   try {

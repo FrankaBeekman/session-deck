@@ -7,6 +7,7 @@ import { registry } from './registry.js'
 import { startHookServer, HOOK_LOG } from './hooks.js'
 import { installBridgeCopy } from './bridge-copy.js'
 import { IS_MAC, IS_WIN } from './platform.js'
+import { listBackgrounds, chooseBackground, registerScheme, serveBackgrounds, urlFor } from './backgrounds.js'
 import { reposForSession, fileDiff } from './git.js'
 
 // Must run before `ready`, or the menu bar and About panel say "Electron".
@@ -14,6 +15,8 @@ app.setName('Session Deck')
 // Windows shows toast notifications only for an app with an AppUserModelID,
 // and it must match the installer's appId.
 if (IS_WIN) app.setAppUserModelId('io.github.frankabeekman.session-deck')
+// Must happen before `ready`: privileged schemes cannot be registered later.
+registerScheme()
 
 let win = null
 const notified = new Set()
@@ -127,6 +130,7 @@ function notifyBlocked(sessions) {
 }
 
 app.whenReady().then(() => {
+  serveBackgrounds()
   // Keep the globally installed MCP bridge (if any) in step with this app version.
   installBridgeCopy()
   // One-off: build the hours list from hook history that predates it.
@@ -164,6 +168,16 @@ app.whenReady().then(() => {
   ipcMain.on('deck:todo-add', (_e, { uid, text }) => registry.addTodo(uid, text, 'user'))
   ipcMain.on('deck:todo-toggle', (_e, { projectKey, todoId }) => registry.toggleTodo(projectKey, todoId))
   ipcMain.on('deck:todo-remove', (_e, { projectKey, todoId }) => registry.removeTodo(projectKey, todoId))
+  ipcMain.handle('deck:backgrounds', () => {
+    const { dir, images } = listBackgrounds()
+    return { dir, images: images.map((i) => ({ ...i, url: urlFor(i.path) })) }
+  })
+  ipcMain.handle('deck:choose-background', async () => {
+    const picked = await chooseBackground(win)
+    return picked ? { ...picked, url: urlFor(picked.path) } : null
+  })
+  ipcMain.handle('deck:ticket-base', () => registry.ticketBase())
+  ipcMain.handle('deck:set-ticket-base', (_e, url) => registry.setTicketBase(url))
   ipcMain.handle('deck:worklog-days', () => registry.worklogDays())
   ipcMain.handle('deck:worklog', (_e, day) => registry.worklogFor(day))
 

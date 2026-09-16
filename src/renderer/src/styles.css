@@ -1,3 +1,7 @@
+/* ---------- themes ----------
+   Every colour is a token, so a theme is one block of overrides. Semantic
+   colours (work / needs-you / done) stay distinct from the accent in every
+   theme: "needs you" has to read at a glance even in neon. */
 :root {
   color-scheme: light dark;
   --app: #f5f3f4;
@@ -20,10 +24,15 @@
 
   --f-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --f-mono: ui-monospace, SFMono-Regular, Menlo, "Cascadia Mono", Consolas, monospace;
+
+  /* Set from the Appearance menu. */
+  --tile-font: 0.685rem;
 }
 
+/* The plum dark theme: the system default when the OS is dark, or chosen. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
+    color-scheme: dark;
     --app: #171416;
     --chrome: #2a2528;
     --card: #201c1f;
@@ -41,6 +50,29 @@
     --idle: #8e8489;  --idle-bg: #262224;
   }
 }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --app: #171416;
+  --chrome: #2a2528;
+  --card: #201c1f;
+  --ink: #f1ecee;
+  --ink-2: #cfc6cb;
+  --muted: #9e9298;
+  --line: #332d31;
+  --line-2: #453d42;
+  --accent: #e8628d;
+  --accent-soft: #2c1a22;
+
+  --work: #7fb2e6;  --work-bg: #1a2432;
+  --need: #f0a838;  --need-bg: #33260f;  --need-edge: #c98c2c;  --need-card: #2a2118;
+  --done: #6ecb95;  --done-bg: #152a1e;
+  --idle: #8e8489;  --idle-bg: #262224;
+}
+
+/* Themes beyond these two live in themes.js and are applied as variables at
+   runtime — one source of truth for 7 themes x light/dark, and the Appearance
+   swatches read from it too. The blocks above remain the pre-script default. */
 
 * { box-sizing: border-box; }
 
@@ -121,7 +153,9 @@ body {
 
 /* ---------- session tile ---------- */
 .card {
-  background: var(--card);
+  /* Only the card itself is translucent — the activity block inside keeps its
+     own solid background, so the text on it never sits on the wallpaper. */
+  background: color-mix(in srgb, var(--card) var(--tile-alpha, 100%), transparent);
   border: 1px solid var(--line);
   border-radius: 7px;
   overflow: hidden;
@@ -137,7 +171,7 @@ body {
 .card.alert {
   border-color: var(--need-edge);
   border-left-width: 3px;
-  background: var(--need-card);
+  background: color-mix(in srgb, var(--need-card) var(--tile-alpha, 100%), transparent);
 }
 .card.closed { opacity: .5; }
 
@@ -158,7 +192,7 @@ body {
   background: var(--term);
   color: var(--term-ink);
   font-family: var(--f-mono);
-  font-size: .685rem;
+  font-size: var(--tile-font);
   line-height: 1.72;
   padding: 9px 12px;
   margin-inline: 9px;
@@ -607,8 +641,9 @@ body {
   font: inherit;
   font-size: .68rem;
   font-weight: 600;
-  width: 24px;
-  padding: 3px 0;
+  /* Fits S/M/L and word labels like Auto/Light/Dark alike. */
+  min-width: 24px;
+  padding: 3px 9px;
   border: 0;
   background: transparent;
   color: var(--muted);
@@ -792,3 +827,100 @@ body {
 /* Windows: the OS draws a real frame and title bar, so there are no traffic
    lights to make room for and the window is dragged by its own frame. */
 :root[data-platform="win32"] .titlebar { padding-left: 14px; -webkit-app-region: no-drag; }
+
+/* ---------- appearance ---------- */
+.appearance { max-width: 480px; }
+.appbody { padding: 4px 15px 16px; overflow-y: auto; display: flex; flex-direction: column; }
+.approw {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.approw:last-child { border-bottom: 0; }
+.applabel { font-size: .84rem; font-weight: 600; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.applabel span { font-size: .72rem; font-weight: 400; color: var(--muted); }
+.themes { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.themes button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: .74rem;
+  padding: 4px 8px 4px 5px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.themes button:hover { border-color: var(--muted); }
+.themes button.current { border-color: var(--accent); color: var(--ink); }
+.themes button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.swatch { display: flex; border-radius: 3px; overflow: hidden; border: 1px solid var(--line); }
+.swatch i { width: 7px; height: 14px; display: block; }
+.appticket { flex-direction: column; align-items: stretch; gap: 8px; }
+.appticketfield { display: flex; gap: 8px; }
+.appticketfield .filter { flex: 1; margin: 0; }
+
+/* ---------- background image ---------- */
+body {
+  background-image: var(--bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+/* Everything sits on a scrim of the page colour: --bg-dim is 100% (opaque) when
+   no background is set, so this is a no-op then. */
+.app { background: color-mix(in srgb, var(--app) var(--bg-dim, 100%), transparent); }
+
+.bgs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 300px; }
+.bgtile {
+  position: relative;
+  width: 74px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--app);
+  color: var(--muted);
+  font: inherit;
+  font-size: .66rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.bgtile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bgtile:hover { border-color: var(--muted); }
+.bgtile.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.bgtile:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.bgname {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 1px 4px;
+  font-size: .56rem;
+  color: #fff;
+  background: rgba(0, 0, 0, .55);
+  text-align: left;
+}
+.bgtile--pick, .bgtile--none { color: var(--ink-2); }
+
+/* Opacity slider */
+.slider { display: flex; align-items: center; gap: 10px; }
+.slider input[type="range"] {
+  width: 148px;
+  accent-color: var(--accent);
+  background: transparent;
+}
+.slider input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.slidervalue {
+  font-family: var(--f-mono);
+  font-size: .7rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 4ch;
+  text-align: right;
+}

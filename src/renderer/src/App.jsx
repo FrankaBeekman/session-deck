@@ -7,20 +7,40 @@ import DiffPanel from './components/DiffPanel.jsx'
 import ChecklistPanel from './components/ChecklistPanel.jsx'
 import ProcessesPanel from './components/ProcessesPanel.jsx'
 import WorkLogPanel from './components/WorkLogPanel.jsx'
+import Appearance, { bgUrl } from './components/Appearance.jsx'
+import { applyTheme } from './themes.js'
 
-/** Tile height as a deck-wide setting: resizing tiles one by one in a grid
-    leaves ragged rows, while a density keeps every row aligned. */
-const DENSITIES = [
-  { key: 'compact', label: 'S', lines: 4 },
-  { key: 'comfortable', label: 'M', lines: 8 },
-  { key: 'tall', label: 'L', lines: 14 }
-]
+/**
+ * Look and feel, all deck-wide. Tile height is a setting rather than a drag
+ * handle per tile: ragged rows in a grid help nobody.
+ */
+const LINES = { small: 4, medium: 8, large: 14 }
+const TILE_FONT = { small: '0.6rem', medium: '0.685rem', large: '0.8rem' }
+const TERM_FONT = { small: 11, medium: 12.5, large: 14.5 }
+const DIM = { subtle: '55%', medium: '75%', strong: '90%' }
+const DEFAULTS = {
+  theme: 'default',
+  mode: 'system',
+  density: 'small',
+  tileFont: 'medium',
+  termFont: 'medium',
+  background: { path: null, dim: 'medium' },
+  tileOpacity: 1
+}
 
-function readDensity() {
+const prefersDark = () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+const resolveMode = (mode) => (mode === 'system' ? (prefersDark() ? 'dark' : 'light') : mode)
+
+function readSettings() {
   try {
-    return localStorage.getItem('deck.density') ?? 'compact'
+    const saved = { ...DEFAULTS, ...JSON.parse(localStorage.getItem('deck.appearance') ?? '{}') }
+    // Themes used to be single-mode, with 'system' as a theme name.
+    if (saved.theme === 'system' || saved.theme === 'light' || saved.theme === 'dark') {
+      return { ...saved, theme: 'default', mode: saved.theme === 'system' ? 'system' : saved.theme }
+    }
+    return saved
   } catch {
-    return 'compact'
+    return { ...DEFAULTS }
   }
 }
 
@@ -34,7 +54,8 @@ export default function App() {
   const [todoUid, setTodoUid] = useState(null)
   const [procUid, setProcUid] = useState(null)
   const [worklogOpen, setWorklogOpen] = useState(false)
-  const [density, setDensity] = useState(readDensity)
+  const [settings, setSettings] = useState(readSettings)
+  const [appearanceOpen, setAppearanceOpen] = useState(false)
 
   useEffect(() => {
     window.deck.sessions().then(setSessions)
@@ -43,9 +64,27 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('deck.density', density)
+      localStorage.setItem('deck.appearance', JSON.stringify(settings))
     } catch {}
-  }, [density])
+    applyTheme(settings.theme, resolveMode(settings.mode))
+    const root = document.documentElement
+    root.style.setProperty('--tile-font', TILE_FONT[settings.tileFont] ?? TILE_FONT.medium)
+    // The scrim keeps tiles readable over a busy image; with no image it is the
+    // page colour at full strength.
+    const bg = settings.background ?? DEFAULTS.background
+    root.style.setProperty('--bg-image', bg.path ? `url("${bgUrl(bg.path)}")` : 'none')
+    root.style.setProperty('--bg-dim', bg.path ? (DIM[bg.dim] ?? DIM.medium) : '100%')
+    root.style.setProperty('--tile-alpha', `${Math.round((settings.tileOpacity ?? 1) * 100)}%`)
+  }, [settings])
+
+  // Follow the OS while the mode is "system".
+  useEffect(() => {
+    if (settings.mode !== 'system') return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => applyTheme(settings.theme, resolveMode('system'))
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [settings.mode, settings.theme])
 
   useEffect(() => {
     // Close the topmost layer only, so Esc in a panel opened from the focused
@@ -57,12 +96,13 @@ export default function App() {
       if (todoUid) return setTodoUid(null)
       if (procUid) return setProcUid(null)
       if (worklogOpen) return setWorklogOpen(false)
+      if (appearanceOpen) return setAppearanceOpen(false)
       if (picking) return setPicking(false)
       setFocusedUid(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pagesUid, diffUid, todoUid, procUid, worklogOpen, picking])
+  }, [pagesUid, diffUid, todoUid, procUid, worklogOpen, appearanceOpen, picking])
 
   const reopen = useCallback(async (uid) => {
     const id = await window.deck.resume(uid)
@@ -87,7 +127,7 @@ export default function App() {
   const procSession = byUid(procUid)
   const running = sessions.filter((s) => s.attached || (s.external && s.status !== 'closed')).length
   const waiting = sessions.filter((s) => s.status === 'needs-you').length
-  const lines = (DENSITIES.find((d) => d.key === density) ?? DENSITIES[0]).lines
+  const lines = LINES[settings.density] ?? LINES.small
 
   const handlers = (s) => ({
     onShowPages: () => setPagesUid(s.uid),
@@ -108,20 +148,9 @@ export default function App() {
         <button className="closeb titlebtn" type="button" onClick={() => setWorklogOpen(true)}>
           Worked on
         </button>
-        <div className="density" role="group" aria-label="Tile height">
-          {DENSITIES.map((d) => (
-            <button
-              key={d.key}
-              type="button"
-              data-density={d.key}
-              aria-pressed={density === d.key}
-              title={`${d.key} tiles — ${d.lines} lines`}
-              onClick={() => setDensity(d.key)}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
+        <button className="closeb titlebtn" type="button" onClick={() => setAppearanceOpen(true)} title="Theme and text size">
+          Appearance
+        </button>
         <button className="newbtn" type="button" onClick={() => setPicking(true)}>
           + New session
         </button>
@@ -145,12 +174,27 @@ export default function App() {
       {picking && (
         <NewSession onPickSite={launch} onPickDirectory={launchDirectory} onClose={() => setPicking(false)} />
       )}
-      {focused && <FocusedSession session={focused} onClose={() => setFocusedUid(null)} {...handlers(focused)} />}
+      {focused && (
+        <FocusedSession
+          session={focused}
+          fontSize={TERM_FONT[settings.termFont] ?? TERM_FONT.medium}
+          theme={`${settings.theme}:${settings.mode}`}
+          onClose={() => setFocusedUid(null)}
+          {...handlers(focused)}
+        />
+      )}
       {/* After the focused view, so a panel opened from it stacks on top. */}
       {diffSession && <DiffPanel session={diffSession} onClose={() => setDiffUid(null)} />}
       {todoSession && <ChecklistPanel session={todoSession} onClose={() => setTodoUid(null)} />}
       {procSession && <ProcessesPanel session={procSession} onClose={() => setProcUid(null)} />}
       {worklogOpen && <WorkLogPanel onClose={() => setWorklogOpen(false)} />}
+      {appearanceOpen && (
+        <Appearance
+          settings={settings}
+          onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+          onClose={() => setAppearanceOpen(false)}
+        />
+      )}
       {pagesSession && (
         <TestPagesPanel
           project={pagesSession.project}

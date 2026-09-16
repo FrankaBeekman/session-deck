@@ -6,7 +6,7 @@ import BranchIcon from './BranchIcon.jsx'
  * shows entry points that are empty, so you can add a to-do before there is one.
  */
 export default function SessionMeta({ session, full = false, onShowPages, onShowDiff, onReopen, onShowTodos, onShowProcesses }) {
-  const { testPages, branch, repoName, canReopen, attached, external, status, pullRequest, todos, processes, finished, appName } = session
+  const { testPages, branch, repoName, canReopen, attached, external, status, pullRequest, ticket, todos, processes, finished, appName } = session
   const latest = testPages.length ? testPages.reduce((a, b) => (b.at > a.at ? b : a)) : null
   const openTodos = todos.filter((t) => !t.done).length
   const act = (fn) => (e) => {
@@ -17,6 +17,16 @@ export default function SessionMeta({ session, full = false, onShowPages, onShow
 
   return (
     <span className="links">
+      {ticket &&
+        (ticket.url ? (
+          <a href="#" className="ticketlink" title={ticket.url} onClick={act(() => window.deck.openExternal(ticket.url))}>
+            {ticket.key}
+          </a>
+        ) : (
+          <span className="ticketlink" title="Set a ticket URL in Appearance to link this">
+            {ticket.key}
+          </span>
+        ))}
       {branch && (
         <span className="branch" title={repoName ? `${branch} — ${repoName}` : branch}>
           <BranchIcon /> {branch}

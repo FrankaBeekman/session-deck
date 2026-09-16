@@ -335,6 +335,67 @@ Claude, which the deck reads incrementally from the transcript's `custom-title`
 entries; between those two the latest wins. Deck renames are stored in
 `store.json`. They do not rename the session inside Claude.
 
+## Appearance
+
+One menu in the title bar: **theme**, **light or dark**, **tile height**, **tile
+text size**, **terminal text size**, and where ticket links point. Settings are
+per machine (`localStorage`); the ticket base URL is shared (`store.json`).
+
+Seven themes, each with a light and a dark version (Auto follows the system):
+**Plum**, **Cyberpunk** (electric blue, neon red), **Spaceship** (steel navy,
+teal, amber), **Nature** (paper and moss), **Electric** (a live yellow wire),
+**Candy** (soft pink) and **Gothic** (purples).
+
+All 14 palettes live in `src/renderer/src/themes.js` and are applied as CSS
+variables at runtime — not 14 blocks of CSS. One source of truth, and the
+Appearance swatches read from it, so they cannot drift from the real colours.
+Only the default light and dark sets are in CSS, as what shows before the script
+runs.
+
+A theme sets its neutrals and its accent; the semantic colours (working, needs
+you, done, idle) come from a shared light or dark set unless they would collide
+with that theme's accent. That is a rule, not a preference — *Needs you* has to
+read at a glance in every theme — and it drives, for example, teal for *Done* in
+Nature (green is the accent) and orange for *Needs you* in Electric (amber
+beside yellow is one colour).
+
+Every text pair in every palette meets WCAG AA (4.5:1); there is a contrast
+check in the repo history for when palettes change. Fixing that also corrected
+two colours that had been slightly under AA since the first version: the idle
+pill and the amber *Needs you* chip.
+
+## Backgrounds
+
+Eight backgrounds ship with the app, in `resources/backgrounds` — stored as JPEG
+(~2.5MB for the set, against ~15MB as PNG) so they can live in the repository.
+**Choose…** takes any other image; that choice is per machine.
+
+Images reach the renderer over a dedicated `deckbg://` scheme rather than
+`file://`: the renderer runs from `http://` in dev and `file://` when packaged,
+and its CSP allows neither. The handler serves only existing image files.
+
+Two controls keep them from making the deck unreadable:
+
+- **Background dim** — everything sits on a scrim of the page colour at
+  *Subtle*, *Medium* or *Strong*. With no background the scrim is the page
+  colour at full strength, so it does nothing.
+- **Tile opacity** — how much of the image shows through the tiles. The activity
+  block inside a tile keeps its own solid background at any setting, so that text
+  never sits directly on the image.
+
+Thumbnails in the panel are resized by the main process, so picking a background
+does not load eight full-size images into the window.
+
+## Ticket numbers
+
+A tile shows the ticket it is on, taken from the branch (`feature/EXC-207-…`) or
+the session name — the same parsing the hours list uses, so `php-8.3` is not
+mistaken for a ticket.
+
+It becomes a link once the deck knows where tickets live. That is learned from
+any ticket URL pasted into a prompt (`…/browse/AS-23230`), or set in Appearance.
+Tickets are only ever linked — never read, never changed.
+
 ## Diagnostics
 
 ```sh

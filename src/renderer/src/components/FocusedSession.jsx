@@ -27,8 +27,10 @@ function savedSize() {
  * terminal is open (resume fallback, /clear), and remounting would flicker and
  * drop scroll position.
  */
-export default function FocusedSession({ session, onClose, onShowPages, onShowDiff, onReopen, onShowTodos, onShowProcesses }) {
+export default function FocusedSession({ session, fontSize = 12.5, theme, onClose, onShowPages, onShowDiff, onReopen, onShowTodos, onShowProcesses }) {
   const hostRef = useRef(null)
+  const termRef = useRef(null)
+  const refitRef = useRef(null)
   const dialogRef = useRef(null)
   const initialSize = useRef(savedSize())
 
@@ -65,12 +67,20 @@ export default function FocusedSession({ session, onClose, onShowPages, onShowDi
     ;(async () => {
       const { cols, rows } = await window.deck.ptySize(session.uid)
       if (disposed) return
+      // The terminal follows the theme: its colours are the same tokens the
+      // tiles use, read once from the document.
+      const css = getComputedStyle(document.documentElement)
+      const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback
       term = new Terminal({
         cols,
         rows,
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, "Cascadia Mono", Consolas, monospace',
-        fontSize: 12,
-        theme: { background: '#100e0f', foreground: '#cdc4c9' },
+        fontSize,
+        theme: {
+          background: token('--term', '#100e0f'),
+          foreground: token('--term-ink', '#cdc4c9'),
+          cursor: token('--accent', '#cdc4c9')
+        },
         cursorBlink: true,
         scrollback: 5000
       })
@@ -88,6 +98,8 @@ export default function FocusedSession({ session, onClose, onShowPages, onShowDi
         term.resize(dims.cols, dims.rows)
         window.deck.resize(session.uid, dims.cols, dims.rows)
       }
+      termRef.current = term
+      refitRef.current = refit
       requestAnimationFrame(refit)
       ro = new ResizeObserver(() => {
         clearTimeout(timer)
@@ -106,8 +118,31 @@ export default function FocusedSession({ session, onClose, onShowPages, onShowDi
       ro?.disconnect()
       offData?.()
       term?.dispose()
+      termRef.current = null
+      refitRef.current = null
     }
   }, [session.uid, detached])
+
+  // The terminal follows a theme change without being remounted.
+  useEffect(() => {
+    const term = termRef.current
+    if (!term) return
+    const css = getComputedStyle(document.documentElement)
+    const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback
+    term.options.theme = {
+      background: token('--term', '#100e0f'),
+      foreground: token('--term-ink', '#cdc4c9'),
+      cursor: token('--accent', '#cdc4c9')
+    }
+  }, [theme])
+
+  // Changing the text size re-flows the same terminal rather than remounting it.
+  useEffect(() => {
+    const term = termRef.current
+    if (!term || term.options.fontSize === fontSize) return
+    term.options.fontSize = fontSize
+    refitRef.current?.()
+  }, [fontSize])
 
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
