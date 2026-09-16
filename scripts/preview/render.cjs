@@ -47,6 +47,7 @@ const SCENARIOS = {
     return {
       bg: [set('{}')],
       'bg-glass': [set("{ tileOpacity: 0.6, theme: 'spaceship' }")],
+      'bg-nebula': [set("{ theme: 'spaceship', mode: 'dark', tileOpacity: 0.7, background: { path: " + JSON.stringify(files.includes('08-nebula.jpg') ? join(dir, '08-nebula.jpg') : null) + ", dim: 'subtle' } }")],
       'bg-blossom': [set("{ theme: 'candy', mode: 'light', tileOpacity: 0.72, background: { path: " + JSON.stringify(files.includes('07-blossom.jpg') ? join(dir, '07-blossom.jpg') : null) + ", dim: 'subtle' } }")],
       'bg-subtle': [set("{ background: { path: " + JSON.stringify(first ? join(dir, first) : null) + ", dim: 'subtle' } }")],
       'bg-panel': [set('{}'), "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"]
