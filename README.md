@@ -4,6 +4,19 @@ A desktop dashboard for Claude Code sessions running across LocalWP sites, for
 macOS and Windows. Its job is one thing: make a session that is *blocked on you*
 announce itself.
 
+## Screenshots
+
+![The deck: one session blocked, one working, one interrupted](docs/screenshots/deck.png)
+
+| | |
+|---|---|
+| ![A focused session](docs/screenshots/focused-session.png) | ![The diff view](docs/screenshots/diff.png) |
+| ![Hours worked](docs/screenshots/worked-on.png) | ![Appearance settings](docs/screenshots/appearance.png) |
+
+![A theme with a background image](docs/screenshots/background.png)
+
+*Rendered from `npm run preview` with example data — no real projects or tickets.*
+
 ## Setup
 
 ```sh

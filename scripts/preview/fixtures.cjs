@@ -63,8 +63,8 @@ exports.sessions = [
   }),
   base({
     id: 's4', name: 'Figma review of the header', status: 'working', external: true, attached: false,
-    project: { id: null, name: 'owc-starter', domain: 'not a Local site' },
-    activity: ['Read  header.php'], branch: 'main', repoName: 'owc-starter', appName: 'Terminal'
+    project: { id: null, name: 'example-starter', domain: 'not a Local site' },
+    activity: ['Read  header.php'], branch: 'main', repoName: 'example-starter', appName: 'Terminal'
   }),
   base({
     id: 's5', name: 'Cookie banner consent fix', status: 'resumable', resumable: true, attached: false,

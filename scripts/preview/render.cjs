@@ -53,6 +53,11 @@ const SCENARIOS = {
       'bg-panel': [set('{}'), "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"]
     }
   })(),
+  shot_deck: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()"],
+  shot_focused: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "document.querySelector('.card').click()"],
+  shot_diff: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "[...document.querySelectorAll('.links a')].find(a => /Diff/.test(a.textContent)).click()"],
+  shot_worklog: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Worked on/.test(b.textContent)).click()"],
+  shot_appearance: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'spaceship', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"],
   appearance2: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'candy', mode: 'light', density: 'small', tileFont: 'medium', termFont: 'medium' })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"],
   todos: ["[...document.querySelectorAll('.links a')].find(a => /to-do/.test(a.textContent)).click()"],
   procs: ["[...document.querySelectorAll('.links a')].find(a => /running/.test(a.textContent)).click()"],
