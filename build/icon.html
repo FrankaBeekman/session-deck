@@ -4,8 +4,8 @@
   .squircle{
     width:832px;height:832px;
     border-radius:186px;
-    background:linear-gradient(160deg,#b03459 0%,#7d1f3f 52%,#5e1730 100%);
-    box-shadow:0 24px 60px rgba(0,0,0,.34), inset 0 3px 0 rgba(255,255,255,.16);
+    background:linear-gradient(160deg,#2f7d86 0%,#1b4756 48%,#10222c 100%);
+    box-shadow:0 24px 60px rgba(0,0,0,.34), inset 0 3px 0 rgba(79,209,197,.28);
     display:grid;
     grid-template-columns:1fr 1fr;
     grid-template-rows:1fr 1fr;
@@ -15,26 +15,26 @@
   }
   .tile{
     border-radius:34px;
-    background:rgba(255,244,247,.90);
-    box-shadow:0 6px 14px rgba(50,8,22,.30);
+    background:rgba(228,238,243,.93);
+    box-shadow:0 6px 14px rgba(4,12,18,.38);
     position:relative;
     overflow:hidden;
   }
   /* the status rail each tile carries */
   .tile::before{
     content:"";position:absolute;left:0;top:0;bottom:0;width:22px;
-    background:#5e1730;opacity:.30;
+    background:#4fd1c5;opacity:.85;
   }
   /* two text ribs, so a tile reads as content not a blank chip */
   .tile::after{
     content:"";position:absolute;left:60px;right:34px;top:52px;height:20px;
-    border-radius:10px;background:#5e1730;opacity:.26;
-    box-shadow:0 46px 0 rgba(94,23,48,.16);
+    border-radius:10px;background:#13202a;opacity:.26;
+    box-shadow:0 46px 0 rgba(19,32,42,.16);
   }
   /* the one blocked session */
-  .tile.alert{background:#f7a83a;box-shadow:0 6px 18px rgba(50,8,22,.38)}
-  .tile.alert::before{background:#8a4a05;opacity:.55;width:30px}
-  .tile.alert::after{background:#8a4a05;opacity:.42;box-shadow:0 46px 0 rgba(138,74,5,.26)}
+  .tile.alert{background:#f6ad55;box-shadow:0 6px 18px rgba(4,12,18,.45)}
+  .tile.alert::before{background:#a2600f;opacity:.75;width:30px}
+  .tile.alert::after{background:#a2600f;opacity:.42;box-shadow:0 46px 0 rgba(162,96,15,.26)}
 </style>
 <div class="wrap">
   <div class="squircle">

@@ -1,6 +1,6 @@
 {
   "name": "session-deck",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Dashboard for Claude Code sessions across LocalWP sites",
   "main": "./out/main/index.js",
@@ -11,12 +11,13 @@
     "postinstall": "node scripts/fix-node-pty.mjs",
     "install-hooks": "node scripts/install-integration.mjs",
     "fix-pty": "node scripts/fix-node-pty.mjs",
-    "dist": "electron-vite build && electron-builder --mac",
+    "dist": "electron-vite build && electron-builder --mac --publish never",
     "pack": "electron-vite build && electron-builder --mac dir",
     "status": "curl -s -H \"X-Deck-Token: $(cat ~/.session-deck/token)\" http://127.0.0.1:47823/sessions",
     "preview": "electron scripts/preview/render.cjs",
     "install-integration": "node scripts/install-integration.mjs",
-    "dist:win": "electron-vite build && electron-builder --win -c.npmRebuild=false"
+    "dist:win": "electron-vite build && electron-builder --win -c.npmRebuild=false --publish never",
+    "dist:all": "electron-vite build && electron-builder --mac --win -c.npmRebuild=false --publish never"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

@@ -4,9 +4,6 @@ A desktop dashboard for Claude Code sessions running across LocalWP sites, for
 macOS and Windows. Its job is one thing: make a session that is *blocked on you*
 announce itself.
 
-> **Windows** is built but not yet verified on a Windows machine — see
-> [Windows](#windows) and [docs/windows-testing.md](docs/windows-testing.md).
-
 ## Setup
 
 ```sh
@@ -64,10 +61,11 @@ time. The second one to start warns and keeps working rather than dying.
 
 ## Windows
 
-Built but **not yet run on Windows** — see [docs/windows-testing.md](docs/windows-testing.md)
-for the checklist. `npm run dist:win` builds `dist/Session Deck Setup <version>.exe`
-(NSIS, x64, unsigned); it cross-builds from macOS, since node-pty ships a
-Windows prebuild and nothing native needs compiling.
+Tested and working on Windows (2026-09-16). `npm run dist:win` builds
+`dist/Session Deck Setup <version>.exe` (NSIS, x64, unsigned); it cross-builds
+from macOS, since node-pty ships a Windows prebuild and nothing native needs
+compiling. [docs/windows-testing.md](docs/windows-testing.md) is the checklist
+used, worth re-running after changes to the platform-specific parts.
 
 What differs, all behind `process.platform`:
 

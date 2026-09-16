@@ -1,9 +1,10 @@
 # Testing Session Deck on Windows
 
-Everything Windows-specific was written and unit-tested on macOS — path
-handling, the launcher script, process-table parsing — but **none of it has run
-on Windows**. This list covers every assumption that can only be checked there,
-roughly in the order you will hit them. Note what actually happens next to each.
+**Status: passed on 2026-09-16.** Keep this list for re-testing after changes to
+the platform-specific parts (launching, hooks, process tracking, packaging).
+
+It covers every assumption that can only be checked on Windows, roughly in the
+order you hit them.
 
 ## 0. Build and install
 
