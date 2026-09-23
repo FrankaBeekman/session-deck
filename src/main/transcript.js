@@ -85,3 +85,73 @@ export function scanTitles(path, offset = 0) {
     if (fd !== undefined) try { closeSync(fd) } catch {}
   }
 }
+
+/** The line of a tool call worth keeping: what it touched or ran, not its payload. */
+function toolLine(block) {
+  const input = block.input ?? {}
+  const what = input.file_path ?? input.command ?? input.pattern ?? input.url ?? input.query ?? input.description ?? ''
+  return `  [${block.name}] ${truncate(String(what).replace(/\s+/g, ' '), 160)}`
+}
+
+/**
+ * A readable digest of a whole conversation, for summarizing: the user's
+ * prompts, Claude's replies and one line per tool call. Tool results, thinking
+ * and file snapshots are dropped — they are most of a transcript's bytes and
+ * none of its story. Over `max` characters the middle goes: the start says what
+ * was asked, the end says where it stands.
+ *
+ * Streams the file in chunks; transcripts pass 10MB.
+ */
+export function transcriptDigest(path, max = 120_000) {
+  const parts = []
+  let fd
+  try {
+    fd = openSync(path, 'r')
+    const size = fstatSync(fd).size
+    const buf = Buffer.alloc(CHUNK)
+    let pos = 0
+    let carry = ''
+    const take = (line) => {
+      // Cheap filter first: most lines are neither.
+      if (!line.includes('"type":"user"') && !line.includes('"type":"assistant"')) return
+      let entry
+      try {
+        entry = JSON.parse(line)
+      } catch {
+        return
+      }
+      if (entry.isSidechain || (entry.type !== 'user' && entry.type !== 'assistant')) return
+      const content = entry.message?.content
+      const blocks = typeof content === 'string' ? [{ type: 'text', text: content }] : Array.isArray(content) ? content : []
+      for (const b of blocks) {
+        if (b?.type === 'text') {
+          const text = String(b.text ?? '').trim()
+          // Command wrappers and system reminders are not what anyone said.
+          if (!text || (entry.type === 'user' && text.startsWith('<'))) continue
+          parts.push(`${entry.type === 'user' ? 'USER' : 'CLAUDE'}: ${truncate(text, entry.type === 'user' ? 3000 : 1500)}`)
+        } else if (b?.type === 'tool_use' && entry.type === 'assistant') {
+          parts.push(toolLine(b))
+        }
+      }
+    }
+    while (pos < size) {
+      const n = readSync(fd, buf, 0, Math.min(CHUNK, size - pos), pos)
+      if (n <= 0) break
+      pos += n
+      const lines = (carry + buf.subarray(0, n).toString('utf8')).split('\n')
+      carry = lines.pop()
+      lines.forEach(take)
+    }
+    if (carry) take(carry)
+  } catch {
+    return null
+  } finally {
+    if (fd !== undefined) try { closeSync(fd) } catch {}
+  }
+
+  const text = parts.join('\n')
+  if (text.length <= max) return text
+  const head = text.slice(0, Math.round(max * 0.25))
+  const tail = text.slice(-Math.round(max * 0.75))
+  return `${head}\n\n[… the middle of the session is left out …]\n\n${tail}`
+}

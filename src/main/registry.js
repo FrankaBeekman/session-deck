@@ -1,16 +1,17 @@
 import { EventEmitter } from 'events'
-import { existsSync, readdirSync } from 'fs'
+import { existsSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import { randomUUID } from 'crypto'
 import { launchSession, COLS, ROWS } from './launcher.js'
 import { getProject, projectForDirectory } from './local.js'
 import { load, save, flush } from './store.js'
-import { firstUserMessage, scanTitles } from './transcript.js'
+import { firstUserMessage, scanTitles, transcriptDigest } from './transcript.js'
 import { primaryRepo } from './git.js'
 import { snapshot, claudeAncestor, claudeShells, appFor, focusApp, killTree } from './proc.js'
 import * as worklog from './worklog.js'
 import { createReplay, append, replayText } from './replay.js'
+import { runSummary, SUMMARY_MODEL } from './summary.js'
 
 const MAX_ACTIVITY = 14 // enough for the tallest tile density
 const WEEK = 7 * 24 * 60 * 60 * 1000
@@ -83,6 +84,8 @@ class Registry extends EventEmitter {
     this.store.todos ??= {}
     this.store.pullRequests ??= {}
     this.store.ticketOverrides ??= {}
+    this.store.summaries ??= {}
+    this.summarizing = new Map() // session id -> the running summary job
     this.restore()
     this.scanTimer = setInterval(() => this.scanProcesses(), SCAN_INTERVAL)
   }
@@ -707,6 +710,55 @@ class Registry extends EventEmitter {
       byTime.find((p) => p.sessionId === s.id) ||
       null
     )
+  }
+
+  // --------------------------------------------------------------- summaries
+
+  transcriptOf(s) {
+    const path = s.transcriptPath && existsSync(s.transcriptPath) ? s.transcriptPath : locateTranscript(s.id)
+    return path ?? null
+  }
+
+  /** The saved summary, and whether the conversation has moved on since. */
+  summaryFor(id) {
+    const s = this.resolve(id)
+    if (!s) return null
+    const path = this.transcriptOf(s)
+    const saved = this.store.summaries[s.id] ?? null
+    let size = 0
+    try {
+      size = path ? statSync(path).size : 0
+    } catch {}
+    return {
+      summary: saved,
+      pending: this.summarizing.has(s.id),
+      available: Boolean(path),
+      outdated: Boolean(saved && size > saved.size)
+    }
+  }
+
+  /** Summarize a session with `claude -p`. One run per session at a time. */
+  summarize(id) {
+    const s = this.resolve(id)
+    if (!s) return Promise.reject(new Error('This session is no longer on the deck.'))
+    if (this.summarizing.has(s.id)) return this.summarizing.get(s.id)
+    const path = this.transcriptOf(s)
+    const digest = path && transcriptDigest(path)
+    if (!digest) return Promise.reject(new Error('There is nothing to summarize yet.'))
+    const size = statSync(path).size
+    const key = s.id
+    const job = runSummary(digest)
+      .then((text) => {
+        this.store.summaries[key] = { text, at: Date.now(), size, model: SUMMARY_MODEL }
+        // Kept for the sessions still around, not forever.
+        const keep = Object.entries(this.store.summaries).sort((a, b) => b[1].at - a[1].at).slice(0, 200)
+        this.store.summaries = Object.fromEntries(keep)
+        save(this.store)
+        return this.summaryFor(key)
+      })
+      .finally(() => this.summarizing.delete(key))
+    this.summarizing.set(key, job)
+    return job
   }
 
   // ------------------------------------------------------------------ to-dos

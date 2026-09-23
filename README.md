@@ -452,6 +452,27 @@ It becomes a link once the deck knows where tickets live. That is learned from
 any ticket URL pasted into a prompt (`…/browse/AS-23230`), or set in Appearance.
 Tickets are only ever linked — never read, never changed.
 
+## Session summaries
+
+*Summary* in a focused session writes up what it did: goal, what was done, where
+it stands, what is left — useful for a hand-over, a PR description or the hours
+list. It is made on request, never in the background, and kept in `store.json`;
+when the conversation has continued since, the dialog says so and offers a new
+one.
+
+`src/main/transcript.js` boils the transcript down first (prompts, replies, one
+line per tool call; tool output, thinking and file snapshots dropped, the middle
+cut past 120k characters — 37ms for an 11MB transcript). `src/main/summary.js`
+then runs one `claude -p` on Haiku with:
+
+- `--tools ""` — it only reads what it is given;
+- `--safe-mode` — no hooks, MCP servers or CLAUDE.md. Without it the deck's own
+  global hooks would report the run as a new session and give it a tile;
+- `--no-session-persistence` and a temp directory as cwd.
+
+`--bare` would skip hooks too, but only accepts an API key, not a subscription
+login.
+
 ## Diagnostics
 
 ```sh

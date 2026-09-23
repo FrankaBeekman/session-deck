@@ -116,3 +116,18 @@ index 3f1c2aa..9b0e4d1 100644
 +	<ul class="vacancy-list" data-department="<?php echo esc_attr( $department ); ?>">
  		<?php foreach ( $vacancies as $vacancy ) : ?>
 `
+
+exports.summary = `## Goal
+Add a department filter to the vacancy block (EXC-207).
+
+## Done
+- Added a \`department\` facet to \`class-vacancy-query.php\`, reusing the existing taxonomy query
+- New select in \`render.php\` and \`edit.js\`; styles in \`_vacancy-filter.scss\`
+- Built the assets and made a test page with WP-CLI
+
+## State
+Waiting on you: Claude asked permission to run \`wp post create\` for a second test page.
+
+## Next
+- Check the filter on iOS Safari
+- Clear the page cache on staging after deploying`

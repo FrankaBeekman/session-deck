@@ -22,6 +22,7 @@ const SCENARIOS = {
   prs: ["[...document.querySelectorAll('.links a')].find(a => a.title === 'Pull requests reported for this project').click()"],
   pages: ["[...document.querySelectorAll('.links a')].find(a => a.title === 'Test pages recorded for this project').click()"],
   diff: ["[...document.querySelectorAll('.links a')].find(a => /Diff/.test(a.textContent)).click()"],
+  summary: ["document.querySelector('.card').click()", "[...document.querySelectorAll('.links a')].find(a => a.textContent.trim() === 'Summary').click()"],
   focused: ["document.querySelector('.card').click()"],
   new: ["document.querySelector('.titlebar .newbtn').click()"],
   newdir: ["document.querySelector('.titlebar .newbtn').click()", "document.querySelector('#tab-directory').click()"],

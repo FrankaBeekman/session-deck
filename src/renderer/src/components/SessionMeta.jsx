@@ -5,7 +5,7 @@ import BranchIcon from './BranchIcon.jsx'
  * view alike, so the two cannot drift apart. `full` (the focused view) also
  * shows entry points that are empty, so you can add a to-do before there is one.
  */
-export default function SessionMeta({ session, full = false, onShowPages, onShowPrs, onShowDiff, onReopen, onShowTodos, onShowProcesses }) {
+export default function SessionMeta({ session, full = false, onShowPages, onShowPrs, onShowDiff, onShowSummary, onReopen, onShowTodos, onShowProcesses }) {
   const { testPages, branch, repoName, canReopen, attached, external, status, pullRequest, pullRequests, ticket, todos, processes, finished, appName } = session
   const latest = testPages.length ? testPages.reduce((a, b) => (b.at > a.at ? b : a)) : null
   const openTodos = todos.filter((t) => !t.done).length
@@ -58,6 +58,11 @@ export default function SessionMeta({ session, full = false, onShowPages, onShow
       <a href="#" onClick={act(onShowDiff)}>
         Diff
       </a>
+      {full && (
+        <a href="#" onClick={act(onShowSummary)} title="What this session did and where it stands">
+          Summary
+        </a>
+      )}
       {(openTodos > 0 || full) && (
         <a href="#" className={openTodos ? 'todolink' : ''} onClick={act(onShowTodos)}>
           {openTodos ? `☐ ${openTodos} to-do${openTodos === 1 ? '' : 's'}` : 'To-dos'}

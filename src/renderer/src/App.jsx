@@ -3,6 +3,7 @@ import SessionTile from './components/SessionTile.jsx'
 import FocusedSession from './components/FocusedSession.jsx'
 import NewSession from './components/NewSession.jsx'
 import LinksPanel from './components/LinksPanel.jsx'
+import SummaryPanel from './components/SummaryPanel.jsx'
 import DiffPanel from './components/DiffPanel.jsx'
 import ChecklistPanel from './components/ChecklistPanel.jsx'
 import ProcessesPanel from './components/ProcessesPanel.jsx'
@@ -53,6 +54,7 @@ export default function App() {
   const [picking, setPicking] = useState(false)
   const [links, setLinks] = useState(null) // { uid, kind: 'pages' | 'prs' }
   const [diffUid, setDiffUid] = useState(null)
+  const [summaryUid, setSummaryUid] = useState(null)
   const [todoUid, setTodoUid] = useState(null)
   const [procUid, setProcUid] = useState(null)
   const [worklogOpen, setWorklogOpen] = useState(false)
@@ -107,6 +109,7 @@ export default function App() {
     const onKey = (e) => {
       if (e.key !== 'Escape') return
       if (links) return setLinks(null)
+      if (summaryUid) return setSummaryUid(null)
       if (diffUid) return setDiffUid(null)
       if (todoUid) return setTodoUid(null)
       if (procUid) return setProcUid(null)
@@ -118,7 +121,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [links, diffUid, todoUid, procUid, updateOpen, worklogOpen, appearanceOpen, picking])
+  }, [links, summaryUid, diffUid, todoUid, procUid, updateOpen, worklogOpen, appearanceOpen, picking])
 
   const reopen = useCallback(async (uid) => {
     try {
@@ -146,6 +149,7 @@ export default function App() {
   const focused = byUid(focusedUid)
   const linksSession = links && byUid(links.uid)
   const diffSession = byUid(diffUid)
+  const summarySession = byUid(summaryUid)
   const todoSession = byUid(todoUid)
   const procSession = byUid(procUid)
   const running = sessions.filter((s) => s.attached || (s.external && s.status !== 'closed')).length
@@ -156,6 +160,7 @@ export default function App() {
     onShowPages: () => setLinks({ uid: s.uid, kind: 'pages' }),
     onShowPrs: () => setLinks({ uid: s.uid, kind: 'prs' }),
     onShowDiff: () => setDiffUid(s.uid),
+    onShowSummary: () => setSummaryUid(s.uid),
     onShowTodos: () => setTodoUid(s.uid),
     onShowProcesses: () => setProcUid(s.uid),
     onReopen: () => reopen(s.uid)
@@ -225,6 +230,7 @@ export default function App() {
         />
       )}
       {/* After the focused view, so a panel opened from it stacks on top. */}
+      {summarySession && <SummaryPanel session={summarySession} onClose={() => setSummaryUid(null)} />}
       {diffSession && <DiffPanel session={diffSession} onClose={() => setDiffUid(null)} />}
       {todoSession && <ChecklistPanel session={todoSession} onClose={() => setTodoUid(null)} />}
       {procSession && <ProcessesPanel session={procSession} onClose={() => setProcUid(null)} />}

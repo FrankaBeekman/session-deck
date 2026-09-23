@@ -195,6 +195,8 @@ app.whenReady().then(() => {
   ipcMain.handle('deck:set-ticket-base', (_e, url) => registry.setTicketBase(url))
   ipcMain.handle('deck:worklog-days', () => registry.worklogDays())
   ipcMain.handle('deck:worklog', (_e, day) => registry.worklogFor(day))
+  ipcMain.handle('deck:summary', (_e, uid) => registry.summaryFor(uid))
+  ipcMain.handle('deck:summarize', (_e, uid) => registry.summarize(uid))
   ipcMain.handle('deck:set-ticket', (_e, { key, ticket }) => registry.setTicket(key, ticket))
 
   ipcMain.handle('deck:resume', (_e, sessionId) => registry.reopen(sessionId)?.id ?? null)

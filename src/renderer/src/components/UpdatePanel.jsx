@@ -1,24 +1,6 @@
-const mb = (bytes) => `${Math.round(bytes / 1e6)} MB`
+import LightMarkdown from './LightMarkdown.jsx'
 
-/**
- * Release notes are Markdown. Enough of it is turned into text to read well —
- * headings in bold, links as their text — without pulling in a parser.
- */
-function Notes({ text }) {
-  const lines = text
-    .trim()
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .split(/\r?\n/)
-    .filter((line) => line.trim())
-  return (
-    <div className="updatenotes">
-      {lines.map((line, i) =>
-        /^#{1,6}\s/.test(line) ? <b key={i}>{line.replace(/^#+\s*/, '')}</b> : <div key={i}>{line}</div>
-      )}
-    </div>
-  )
-}
+const mb = (bytes) => `${Math.round(bytes / 1e6)} MB`
 
 /**
  * Check, download and install a release from GitHub. The main process owns the
@@ -109,7 +91,7 @@ export default function UpdatePanel({ state, running, onClose }) {
           {notes && status !== 'none' && latest && (
             <>
               <h4 className="listlabel">What’s new</h4>
-              <Notes text={notes} />
+              <LightMarkdown text={notes} className="updatenotes" />
             </>
           )}
         </div>
