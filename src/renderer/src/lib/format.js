@@ -23,3 +23,8 @@ export function quarterHours(minutes) {
 export function clockTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
+
+/** An error thrown in the main process, without Electron's IPC wrapping. */
+export function ipcError(err) {
+  return String(err?.message ?? err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
+}

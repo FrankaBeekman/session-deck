@@ -223,7 +223,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('deck:git-diff', (_e, { root, path, group }) => fileDiff(root, path, { group }))
 
-  ipcMain.handle('deck:buffer', (_e, sessionId) => registry.resolve(sessionId)?.buffer ?? '')
+  ipcMain.handle('deck:buffer', (_e, sessionId) => registry.replayFor(sessionId))
   ipcMain.on('deck:write', (_e, { sessionId, data }) => registry.write(sessionId, data))
   ipcMain.on('deck:close', (_e, sessionId) => registry.close(sessionId))
   ipcMain.on('deck:remove', (_e, sessionId) => registry.remove(sessionId))

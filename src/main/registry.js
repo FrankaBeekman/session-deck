@@ -10,8 +10,8 @@ import { firstUserMessage, scanTitles } from './transcript.js'
 import { primaryRepo } from './git.js'
 import { snapshot, claudeAncestor, claudeShells, appFor, focusApp, killTree } from './proc.js'
 import * as worklog from './worklog.js'
+import { createReplay, append, replayText } from './replay.js'
 
-const MAX_BUFFER = 200_000 // chars of raw PTY output kept for the focused view
 const MAX_ACTIVITY = 14 // enough for the tallest tile density
 const WEEK = 7 * 24 * 60 * 60 * 1000
 // Windows lists processes through PowerShell, which costs far more than ps.
@@ -62,7 +62,7 @@ function createSession(fields) {
     rows: ROWS,
     startedAt: now,
     updatedAt: now,
-    buffer: '',
+    replay: createReplay(), // raw PTY output for the focused view
     pty: null,
     ...fields
   }
@@ -164,7 +164,7 @@ class Registry extends EventEmitter {
     })
 
     pty.onData((chunk) => {
-      session.buffer = (session.buffer + chunk).slice(-MAX_BUFFER)
+      append(session.replay, chunk)
       // Keyed by deckId: the Claude session id can change mid-stream.
       this.emit('data', session.deckId, chunk)
     })
@@ -293,7 +293,13 @@ class Registry extends EventEmitter {
     this.sessions.delete(s.id)
     // Claude files a conversation under the directory it started in, so it has
     // to be resumed from that same directory to be found.
-    return this.launch(project, { resumeId: s.id, name: s.name, nameSource: s.nameSource })
+    try {
+      return this.launch(project, { resumeId: s.id, name: s.name, nameSource: s.nameSource })
+    } catch (err) {
+      // Keep the tile: it is still resumable once whatever broke is fixed.
+      this.sessions.set(s.id, s)
+      throw err
+    }
   }
 
   canReopen(s) {
@@ -565,6 +571,12 @@ class Registry extends EventEmitter {
     try {
       s.pty.resize(c, r)
     } catch {}
+  }
+
+  /** What the focused view writes into a fresh terminal before going live. */
+  replayFor(id) {
+    const s = this.resolve(id)
+    return s ? replayText(s.replay) : ''
   }
 
   ptySize(id) {

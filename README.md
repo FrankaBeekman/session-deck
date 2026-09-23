@@ -47,12 +47,22 @@ npm run dist:win    # Windows -> dist/Session Deck Setup <version>.exe (also bui
 ```
 
 **macOS:** drag the app to `/Applications` and it is Spotlight-launchable. The build is
-**unsigned** (`identity: null`) -- fine for personal use, but a copy that has
-been through a download or AirDrop will carry a quarantine flag. Clear it with:
+**ad-hoc signed** (`identity: "-"`), not signed with an Apple Developer ID or
+notarized. Up to 0.2.0 it was not signed at all (`identity: null`), which left
+Electron's original signature broken by the rename. Apple Silicon Macs report a
+downloaded copy of such a build as "damaged", with no way to open it. An ad-hoc
+signature is valid, so macOS only says it cannot verify the developer — once:
+open it, then *System Settings → Privacy & Security → Open Anyway*. Or clear the
+quarantine flag up front:
 
 ```sh
 xattr -dr com.apple.quarantine "/Applications/Session Deck.app"
 ```
+
+Hardened runtime stays off: with an ad-hoc signature it would refuse to load
+node-pty's native module. `npmRebuild` is off too, and node-pty's `build/` is
+left out of the package: its prebuilds cover every target, and a rebuild under
+Rosetta Node compiled an x64 `pty.node` into an arm64 app.
 
 **Windows:** run the installer. It is unsigned too, so SmartScreen warns once —
 *More info* → *Run anyway*.

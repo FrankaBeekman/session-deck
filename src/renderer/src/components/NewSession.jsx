@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ipcError } from '../lib/format.js'
 
 const TABS = [
   { key: 'site', label: 'Local site' },
@@ -32,11 +33,22 @@ export default function NewSession({ onPickSite, onPickDirectory, onClose }) {
     } catch {}
   }, [tab])
 
-  const choose = async () => {
+  // A failed launch keeps the picker open with the reason, rather than closing
+  // it and leaving no tile and no explanation.
+  const start = async (fn) => {
     setError(null)
-    const dir = await window.deck.chooseDirectory()
-    if (dir) onPickDirectory(dir)
+    try {
+      await fn()
+    } catch (err) {
+      setError(ipcError(err))
+    }
   }
+
+  const choose = () =>
+    start(async () => {
+      const dir = await window.deck.chooseDirectory()
+      if (dir) await onPickDirectory(dir)
+    })
 
   const shown = projects.filter((p) => `${p.name} ${p.domain}`.toLowerCase().includes(filter.toLowerCase()))
 
@@ -68,6 +80,12 @@ export default function NewSession({ onPickSite, onPickDirectory, onClose }) {
           ))}
         </div>
 
+        {error && (
+          <p className="formerror launchfail" role="alert">
+            {error}
+          </p>
+        )}
+
         {tab === 'site' ? (
           <div className="tabpanel" id="panel-site" role="tabpanel" aria-labelledby="tab-site">
             <input
@@ -82,7 +100,7 @@ export default function NewSession({ onPickSite, onPickDirectory, onClose }) {
             <ul className="plist">
               {shown.map((p) => (
                 <li key={p.id}>
-                  <button type="button" onClick={() => onPickSite(p.id)}>
+                  <button type="button" onClick={() => start(() => onPickSite(p.id))}>
                     <span className="sname">{p.name}</span>
                     <span className="pname">
                       {p.domain} <s>•</s> PHP {p.phpVersion}
@@ -103,7 +121,6 @@ export default function NewSession({ onPickSite, onPickDirectory, onClose }) {
                 Inside a Local site, the session still gets that site’s shell — WP-CLI and the
                 right PHP — just started in the folder you pick.
               </p>
-              {error && <p className="formerror">{error}</p>}
             </div>
             {recent.length > 0 && (
               <>
@@ -111,7 +128,7 @@ export default function NewSession({ onPickSite, onPickDirectory, onClose }) {
                 <ul className="plist">
                   {recent.map((d) => (
                     <li key={d.path}>
-                      <button type="button" onClick={() => onPickDirectory(d.path)} title={d.path}>
+                      <button type="button" onClick={() => start(() => onPickDirectory(d.path))} title={d.path}>
                         <span className="sname">{d.name}</span>
                         <span className="pname">
                           <span className="dirpath">{d.display}</span>

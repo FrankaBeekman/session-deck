@@ -314,6 +314,7 @@ body {
 .closeb:hover { color: var(--ink); border-color: var(--muted); }
 
 .fterm { flex: 1; min-height: 0; background: var(--term); padding: 10px 12px; overflow: hidden; }
+.ftermhost { height: 100%; }
 .fterm .xterm { height: 100%; }
 .fhead, .ffoot, .alertbar--top { flex: none; }
 .ffoot { padding: 10px 15px; display: flex; gap: 10px; align-items: center; }
@@ -738,6 +739,8 @@ body {
 }
 .choosedir p { margin: 0; font-size: .78rem; color: var(--muted); max-width: 52ch; }
 .formerror { color: #c0392b !important; }
+.launchfail { margin: 10px 15px 0; font-size: .78rem; }
+.launcherror { border-top: 0; border-bottom: 1px solid var(--need-edge); }
 .listlabel {
   margin: 4px 0 2px;
   padding: 0 18px;

@@ -9,6 +9,7 @@ import ProcessesPanel from './components/ProcessesPanel.jsx'
 import WorkLogPanel from './components/WorkLogPanel.jsx'
 import Appearance, { bgUrl } from './components/Appearance.jsx'
 import { applyTheme } from './themes.js'
+import { ipcError } from './lib/format.js'
 
 /**
  * Look and feel, all deck-wide. Tile height is a setting rather than a drag
@@ -56,6 +57,7 @@ export default function App() {
   const [worklogOpen, setWorklogOpen] = useState(false)
   const [settings, setSettings] = useState(readSettings)
   const [appearanceOpen, setAppearanceOpen] = useState(false)
+  const [launchError, setLaunchError] = useState(null)
 
   useEffect(() => {
     window.deck.sessions().then(setSessions)
@@ -105,18 +107,25 @@ export default function App() {
   }, [pagesUid, diffUid, todoUid, procUid, worklogOpen, appearanceOpen, picking])
 
   const reopen = useCallback(async (uid) => {
-    const id = await window.deck.resume(uid)
-    if (id) setFocusedUid(id)
+    try {
+      const id = await window.deck.resume(uid)
+      if (id) setFocusedUid(id)
+    } catch (err) {
+      setLaunchError(ipcError(err))
+    }
   }, [])
 
+  // These throw on failure, and the picker stays open to show why.
   const launch = useCallback(async (projectId) => {
+    const uid = await window.deck.launch(projectId)
     setPicking(false)
-    setFocusedUid(await window.deck.launch(projectId))
+    setFocusedUid(uid)
   }, [])
 
   const launchDirectory = useCallback(async (dir) => {
+    const uid = await window.deck.launchDirectory(dir)
     setPicking(false)
-    setFocusedUid(await window.deck.launchDirectory(dir))
+    setFocusedUid(uid)
   }, [])
 
   const byUid = (uid) => sessions.find((s) => s.uid === uid) ?? null
@@ -155,6 +164,18 @@ export default function App() {
           + New session
         </button>
       </header>
+
+      {launchError && (
+        <div className="alertbar launcherror" role="alert">
+          <div className="q">
+            <b>Could not start the session</b>
+            {launchError}
+          </div>
+          <button className="closeb" type="button" onClick={() => setLaunchError(null)}>
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {sessions.length === 0 ? (
         <div className="empty">

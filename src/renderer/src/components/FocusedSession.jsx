@@ -82,12 +82,22 @@ export default function FocusedSession({ session, fontSize = 12.5, theme, onClos
           cursor: token('--accent', '#cdc4c9')
         },
         cursorBlink: true,
-        scrollback: 5000
+        // Enough to hold a long conversation's full reprint.
+        scrollback: 25000
       })
       const fit = new FitAddon()
       term.loadAddon(fit)
       term.open(hostRef.current)
-      term.write(await window.deck.buffer(session.uid))
+      // Subscribe before asking for the replay, and drop what arrives until it
+      // lands: those chunks are already in it. Subscribing after lost them.
+      let live = false
+      offData = window.deck.onData(({ sessionId, chunk }) => {
+        if (live && sessionId === session.uid) term.write(chunk)
+      })
+      const replay = await window.deck.buffer(session.uid)
+      if (disposed) return
+      term.write(replay)
+      live = true
       term.focus()
 
       const refit = () => {
@@ -107,9 +117,6 @@ export default function FocusedSession({ session, fontSize = 12.5, theme, onClos
       })
       ro.observe(hostRef.current)
       term.onData((data) => window.deck.write(session.uid, data))
-      offData = window.deck.onData(({ sessionId, chunk }) => {
-        if (sessionId === session.uid) term.write(chunk)
-      })
     })()
 
     return () => {
@@ -204,7 +211,12 @@ export default function FocusedSession({ session, fontSize = 12.5, theme, onClos
             )}
           </div>
         ) : (
-          <div className="fterm" ref={hostRef} />
+          // xterm mounts in an unpadded inner box: FitAddon measures its parent's
+          // border-box height, so padding there made it plan a row too many and
+          // the bottom line — Claude's prompt — was clipped.
+          <div className="fterm">
+            <div className="ftermhost" ref={hostRef} />
+          </div>
         )}
 
         <div className="ffoot">
