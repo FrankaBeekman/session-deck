@@ -7,6 +7,7 @@ import DiffPanel from './components/DiffPanel.jsx'
 import ChecklistPanel from './components/ChecklistPanel.jsx'
 import ProcessesPanel from './components/ProcessesPanel.jsx'
 import WorkLogPanel from './components/WorkLogPanel.jsx'
+import UpdatePanel from './components/UpdatePanel.jsx'
 import Appearance, { bgUrl } from './components/Appearance.jsx'
 import { applyTheme } from './themes.js'
 import { ipcError } from './lib/format.js'
@@ -58,6 +59,18 @@ export default function App() {
   const [settings, setSettings] = useState(readSettings)
   const [appearanceOpen, setAppearanceOpen] = useState(false)
   const [launchError, setLaunchError] = useState(null)
+  const [update, setUpdate] = useState({ status: 'idle' })
+  const [updateOpen, setUpdateOpen] = useState(false)
+
+  useEffect(() => {
+    window.deck.updateState().then(setUpdate)
+    const offState = window.deck.onUpdate(setUpdate)
+    const offOpen = window.deck.onUpdateOpen(() => setUpdateOpen(true))
+    return () => {
+      offState()
+      offOpen()
+    }
+  }, [])
 
   useEffect(() => {
     window.deck.sessions().then(setSessions)
@@ -97,6 +110,7 @@ export default function App() {
       if (diffUid) return setDiffUid(null)
       if (todoUid) return setTodoUid(null)
       if (procUid) return setProcUid(null)
+      if (updateOpen) return setUpdateOpen(false)
       if (worklogOpen) return setWorklogOpen(false)
       if (appearanceOpen) return setAppearanceOpen(false)
       if (picking) return setPicking(false)
@@ -104,7 +118,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pagesUid, diffUid, todoUid, procUid, worklogOpen, appearanceOpen, picking])
+  }, [pagesUid, diffUid, todoUid, procUid, updateOpen, worklogOpen, appearanceOpen, picking])
 
   const reopen = useCallback(async (uid) => {
     try {
@@ -154,6 +168,11 @@ export default function App() {
           {running} running{waiting > 0 && ` · ${waiting} waiting`}
         </span>
         <span className="spacer" />
+        {['available', 'downloading', 'ready'].includes(update.status) && (
+          <button className="closeb titlebtn updatebtn" type="button" onClick={() => setUpdateOpen(true)}>
+            {update.status === 'ready' ? 'Restart to update' : `Update to ${update.latest}`}
+          </button>
+        )}
         <button className="closeb titlebtn" type="button" onClick={() => setWorklogOpen(true)}>
           Worked on
         </button>
@@ -209,6 +228,7 @@ export default function App() {
       {todoSession && <ChecklistPanel session={todoSession} onClose={() => setTodoUid(null)} />}
       {procSession && <ProcessesPanel session={procSession} onClose={() => setProcUid(null)} />}
       {worklogOpen && <WorkLogPanel onClose={() => setWorklogOpen(false)} />}
+      {updateOpen && <UpdatePanel state={update} running={sessions.filter((s) => s.attached).length} onClose={() => setUpdateOpen(false)} />}
       {appearanceOpen && (
         <Appearance
           settings={settings}

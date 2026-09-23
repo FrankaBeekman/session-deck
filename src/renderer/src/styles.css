@@ -927,3 +927,22 @@ body {
   min-width: 4ch;
   text-align: right;
 }
+
+/* ---------- updates ---------- */
+.updatepanel { max-width: 520px; }
+.updatebody { padding: 14px 15px 16px; display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+.updatebody p { margin: 0; font-size: .82rem; color: var(--ink-2); }
+.updateactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.updateactions .closeb { margin-left: 0; }
+.updatebody .listlabel { padding: 0; margin: 6px 0 0; }
+.updateprogress { width: 100%; height: 8px; accent-color: var(--accent); }
+.updatenotes {
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: .78rem;
+  color: var(--muted);
+}
+.updatenotes b { display: block; color: var(--ink-2); margin-top: 6px; }
+.updatenotes b:first-child { margin-top: 0; }
+.updatebtn { color: var(--accent); border-color: var(--accent); }

@@ -9,6 +9,7 @@ import { installBridgeCopy } from './bridge-copy.js'
 import { IS_MAC, IS_WIN } from './platform.js'
 import { listBackgrounds, chooseBackground, registerScheme, serveBackgrounds, urlFor } from './backgrounds.js'
 import { reposForSession, fileDiff } from './git.js'
+import { updater } from './updater.js'
 
 // Must run before `ready`, or the menu bar and About panel say "Electron".
 app.setName('Session Deck')
@@ -44,6 +45,13 @@ function applyMenu() {
       label: 'Session Deck',
       submenu: [
         { role: 'about', label: 'About Session Deck' },
+        {
+          label: 'Check for Updates…',
+          click: () => {
+            send('deck:update-open')
+            updater.check()
+          }
+        },
         // hide / hideOthers / unhide exist only on macOS.
         ...(IS_MAC
           ? [{ type: 'separator' }, { role: 'hide', label: 'Hide Session Deck' }, { role: 'hideOthers' }, { role: 'unhide' }]
@@ -158,6 +166,13 @@ app.whenReady().then(() => {
   registry.on('data', (sessionId, chunk) => {
     send('deck:data', { sessionId, chunk })
   })
+
+  updater.on('change', (state) => send('deck:update', state))
+  updater.start()
+  ipcMain.handle('deck:update-state', () => updater.state)
+  ipcMain.handle('deck:update-check', () => updater.check())
+  ipcMain.handle('deck:update-download', () => updater.download())
+  ipcMain.handle('deck:update-install', () => updater.install())
 
   ipcMain.handle('deck:projects', () => listProjects())
   ipcMain.handle('deck:sessions', () => registry.serialize())

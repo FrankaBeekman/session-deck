@@ -58,5 +58,9 @@ contextBridge.exposeInMainWorld('deck', {
   write: () => {}, close: () => {}, remove: () => {}, rename: () => {},
   forgetTestPage: () => {}, openExternal: () => {}, focusExternal: () => {},
   onSessions: (cb) => { listeners.push(cb); return () => {} },
+  updateState: async () => ({ status: 'none', current: '0.2.0' }),
+  checkForUpdate: async () => {}, downloadUpdate: async () => {}, installUpdate: async () => {},
+  onUpdate: () => () => {},
+  onUpdateOpen: () => () => {},
   onData: () => () => {}
 })

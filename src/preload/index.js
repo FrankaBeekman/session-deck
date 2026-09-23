@@ -33,11 +33,25 @@ contextBridge.exposeInMainWorld('deck', {
   forgetTestPage: (projectKey, pageId) =>
     ipcRenderer.send('deck:forget-test-page', { projectKey, pageId }),
   openExternal: (url) => ipcRenderer.send('deck:open-external', url),
+  updateState: () => ipcRenderer.invoke('deck:update-state'),
+  checkForUpdate: () => ipcRenderer.invoke('deck:update-check'),
+  downloadUpdate: () => ipcRenderer.invoke('deck:update-download'),
+  installUpdate: () => ipcRenderer.invoke('deck:update-install'),
 
   onSessions: (cb) => {
     const h = (_e, sessions) => cb(sessions)
     ipcRenderer.on('deck:sessions', h)
     return () => ipcRenderer.removeListener('deck:sessions', h)
+  },
+  onUpdate: (cb) => {
+    const h = (_e, state) => cb(state)
+    ipcRenderer.on('deck:update', h)
+    return () => ipcRenderer.removeListener('deck:update', h)
+  },
+  onUpdateOpen: (cb) => {
+    const h = () => cb()
+    ipcRenderer.on('deck:update-open', h)
+    return () => ipcRenderer.removeListener('deck:update-open', h)
   },
   onData: (cb) => {
     const h = (_e, payload) => cb(payload)

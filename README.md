@@ -82,6 +82,37 @@ closing the last window quits.
 Dev and the packaged app share hook port 47823, so only one can own status at a
 time. The second one to start warns and keeps working rather than dying.
 
+## Updates
+
+The deck checks GitHub's latest release 15 seconds after starting and every six
+hours after that; *Session Deck → Check for Updates…* checks on demand. A newer
+version puts an *Update to x.y.z* button in the title bar.
+
+Electron's own updater (Squirrel) only accepts apps signed with an Apple
+Developer ID, so the deck does it itself (`src/main/updater.js`):
+
+1. It downloads the dmg for its architecture (or the Windows installer) and
+   checks its size and the sha256 GitHub publishes for every asset.
+2. *Restart and update* quits the app — deck sessions end and come back as
+   resumable — and hands over to a script that outlives it
+   (`update-core.js`): wait for the pid, mount the dmg, move the old bundle
+   aside, `ditto` the new one in, restore the old one if that fails, clear any
+   quarantine flag, relaunch. It logs to `$TMPDIR/session-deck-update/install.log`.
+   On Windows the NSIS installer runs silently (`/S --force-run`).
+
+A file the app downloads itself gets no quarantine flag, unlike a browser
+download, so an updated version opens without the Gatekeeper prompt. Only the
+first install needs *Open Anyway*.
+
+The app has to be able to replace itself: not from the dmg or App Translocation
+(move it to Applications first), and with write access to its folder. Otherwise
+the dialog says why and links the release page instead. Updating is disabled in
+development.
+
+For a release to be offered, the tag must be newer than the running version
+(`v0.3.0` > `0.2.0`) and it must carry the `-arm64.dmg`, `-x64.dmg` and `.exe`
+assets `npm run dist:all` produces.
+
 ## Windows
 
 Tested and working on Windows (2026-09-16). `npm run dist:win` builds
