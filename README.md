@@ -128,7 +128,7 @@ What differs, all behind `process.platform`:
 | Local data | `~/Library/Application Support/Local` | `%APPDATA%\Local` |
 | Site shell | `bash <site>.sh` with `SHELL` → launcher (`exec $SHELL`) | `cmd /c launcher.cmd`: `call <site>.bat`, then `claude` |
 | Plain directory | `$SHELL -l -c launcher` | the same `.cmd`, without the `call` |
-| Finding claude/node | a login shell's `command -v` | `where` (prefers `.exe` over a `.cmd` shim) |
+| Finding claude/node | own `PATH`, then a login and an interactive shell's `command -v`, then known paths (incl. nvm, Volta) | `where` (prefers `.exe` over a `.cmd` shim) |
 | Hook command | `curl` (~10ms) | Node script `~/.session-deck/hook-client.mjs` |
 | Process list | `ps` every 5s | PowerShell `Win32_Process` every 10s |
 | Go to app | first `.app` bundle, `open -a` | first non-shell ancestor, `WScript.Shell.AppActivate` |
