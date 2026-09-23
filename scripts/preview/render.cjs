@@ -55,6 +55,17 @@ const SCENARIOS = {
       'bg-panel': [set('{}'), "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"]
     }
   })(),
+  // Skins, each with its natural theme and a mismatched one: they must hold up in any.
+  ...Object.fromEntries(
+    [['cyberdeck', 'cyberpunk', 'dark'], ['cyberdeck', 'default', 'light'], ['hud', 'spaceship', 'dark'], ['hud', 'candy', 'light']].flatMap(([skin, theme, mode]) => {
+      const set = `localStorage.setItem('deck.appearance', JSON.stringify({ skin: '${skin}', theme: '${theme}', mode: '${mode}', density: 'small', tileFont: 'medium', termFont: 'medium' })); location.reload()`
+      return [
+        [`skin-${skin}-${theme}-${mode}`, [set]],
+        [`skin-${skin}-${theme}-${mode}-focused`, [set, "document.querySelector('.card').click()"]],
+        [`skin-${skin}-${theme}-${mode}-dialog`, [set, "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"]]
+      ]
+    })
+  ),
   shot_deck: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()"],
   shot_focused: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "document.querySelector('.card').click()"],
   shot_diff: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "[...document.querySelectorAll('.links a')].find(a => /Diff/.test(a.textContent)).click()"],

@@ -16,6 +16,12 @@ const MODES = [
   { key: 'dark', label: 'Dark' }
 ]
 
+const SKINS = [
+  { key: 'plain', label: 'Plain', title: 'Rounded corners, no frames' },
+  { key: 'cyberdeck', label: 'Cyberdeck', title: 'Cut corners and scanlined screens, like hardware' },
+  { key: 'hud', label: 'HUD', title: 'Corner brackets, a grid and a ruler, like a ship’s display' }
+]
+
 export const SIZES = [
   { key: 'small', label: 'S' },
   { key: 'medium', label: 'M' },
@@ -119,6 +125,10 @@ export default function Appearance({ settings, onChange, onClose }) {
 
           <Row label="Light or dark" hint="every theme has both; Auto follows the system">
             <Segmented name="Light or dark" value={settings.mode} options={MODES} onChange={(v) => onChange({ mode: v })} />
+          </Row>
+
+          <Row label="Skin" hint="shapes and frames; works with every theme">
+            <Segmented name="Skin" value={settings.skin ?? 'plain'} options={SKINS} onChange={(v) => onChange({ skin: v })} />
           </Row>
 
           <Row label="Background" hint="included with Session Deck, or choose your own image">

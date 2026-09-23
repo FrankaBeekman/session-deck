@@ -393,7 +393,7 @@ entries; between those two the latest wins. Deck renames are stored in
 
 ## Appearance
 
-One menu in the title bar: **theme**, **light or dark**, **tile height**, **tile
+One menu in the title bar: **theme**, **light or dark**, **skin**, **tile height**, **tile
 text size**, **terminal text size**, and where ticket links point. Settings are
 per machine (`localStorage`); the ticket base URL is shared (`store.json`).
 
@@ -419,6 +419,28 @@ Every text pair in every palette meets WCAG AA (4.5:1); there is a contrast
 check in the repo history for when palettes change. Fixing that also corrected
 two colours that had been slightly under AA since the first version: the idle
 pill and the amber *Needs you* chip.
+
+### Skins
+
+A skin changes shapes and frames, never colours, so it works with every theme,
+light or dark: **Plain** (the default), **Cyberdeck** and **HUD**. It is one
+`data-skin` attribute on the root and `src/renderer/src/skins.css`, which only
+reads theme tokens.
+
+- **Cyberdeck** — hardware. Tiles, dialogs and controls get chamfered corners
+  (`clip-path`, with the diagonal edges drawn back in the border colour so the
+  outline stays unbroken); tile screens get faint scanlines; pills become
+  parallelograms. The focused view keeps a square bottom-right corner for its
+  resize handle, and focus rings are drawn inside the edge, since a clip would
+  cut an outer one off.
+- **HUD** — a projected display. Frames are corner brackets instead of full
+  borders (they take the *Needs you* colour on a blocked tile), the deck sits on
+  a faint grid, pills are outlined readouts with a diamond marker, and the title
+  bar is a ruler.
+
+Neither adds motion or changes text. `npm run preview -- skin-<skin>-<theme>-<mode> out.png`
+renders them; the scenarios pair each skin with its natural theme and a light
+one it was not designed for.
 
 ## Backgrounds
 

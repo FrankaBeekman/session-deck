@@ -24,6 +24,7 @@ const DIM = { subtle: '55%', medium: '75%', strong: '90%' }
 const DEFAULTS = {
   theme: 'default',
   mode: 'system',
+  skin: 'plain',
   density: 'small',
   tileFont: 'medium',
   termFont: 'medium',
@@ -85,6 +86,9 @@ export default function App() {
     } catch {}
     applyTheme(settings.theme, resolveMode(settings.mode))
     const root = document.documentElement
+    // Shapes only (skins.css); colours stay the theme's.
+    if (settings.skin && settings.skin !== 'plain') root.dataset.skin = settings.skin
+    else delete root.dataset.skin
     root.style.setProperty('--tile-font', TILE_FONT[settings.tileFont] ?? TILE_FONT.medium)
     // The scrim keeps tiles readable over a busy image; with no image it is the
     // page colour at full strength.
