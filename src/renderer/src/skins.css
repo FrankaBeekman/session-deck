@@ -29,15 +29,17 @@
 }
 .skinframe .skinframe-dot { fill: var(--frame); }
 
-/* A framed element draws no border of its own: the frame is the border. */
+/* A framed element has no border of its own: the frame is the border. Not
+   just a transparent one — overflow: hidden clips at the inside of a border,
+   so the frame, sized to the whole element, lost its right and bottom lines. */
 [data-skin] :is(.card, .picker, .focused, .diffwin) {
   --frame: var(--line-2);
-  border-color: transparent;
+  border: 0;
   border-radius: 0;
 }
 [data-skin] :is(.picker, .focused, .diffwin) { position: relative; }
 [data-skin] .card:hover { --frame: var(--muted); }
-[data-skin] .card.alert { --frame: var(--need-edge); --frame-w: 2; border-left-width: 1px; }
+[data-skin] .card.alert { --frame: var(--need-edge); --frame-w: 2; border-left-width: 0; }
 /* A clip cuts an outer focus ring off, so focus shows on the frame instead. */
 [data-skin] .card:focus-visible { outline: none; --frame: var(--accent); --frame-w: 2.5; }
 [data-skin] :is(.picker, .focused, .diffwin) { --frame: var(--accent); }
