@@ -1,4 +1,5 @@
 import LightMarkdown from './LightMarkdown.jsx'
+import SkinFrame from './SkinFrame.jsx'
 
 const mb = (bytes) => `${Math.round(bytes / 1e6)} MB`
 
@@ -13,6 +14,7 @@ export default function UpdatePanel({ state, running, onClose }) {
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="picker updatepanel" role="dialog" aria-modal="true" aria-labelledby="update-title">
+        <SkinFrame kind="dialog" />
         <div className="fhead">
           <div>
             <div className="sname" id="update-title">

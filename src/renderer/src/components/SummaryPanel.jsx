@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import LightMarkdown from './LightMarkdown.jsx'
 import { ago, ipcError } from '../lib/format.js'
+import SkinFrame from './SkinFrame.jsx'
 
 /**
  * A summary of one session: goal, what was done, where it stands, what is left.
@@ -46,6 +47,7 @@ export default function SummaryPanel({ session, onClose }) {
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="picker summarypanel" role="dialog" aria-modal="true" aria-labelledby="summary-title">
+        <SkinFrame kind="dialog" />
         <div className="fhead">
           <div className="fheadtext">
             <div className="sname" id="summary-title">

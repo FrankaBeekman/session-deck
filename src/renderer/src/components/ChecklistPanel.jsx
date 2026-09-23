@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ago } from '../lib/format.js'
+import SkinFrame from './SkinFrame.jsx'
 
 /**
  * What the *user* has to do once Claude is done: added by Claude through
@@ -54,6 +55,7 @@ export default function ChecklistPanel({ session, onClose }) {
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="picker checklist" role="dialog" aria-modal="true" aria-labelledby="checklist-title">
+        <SkinFrame kind="dialog" />
         <div className="fhead">
           <div>
             <div className="sname" id="checklist-title">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import BranchIcon from './BranchIcon.jsx'
+import SkinFrame from './SkinFrame.jsx'
 
 const GROUPS = [
   { key: 'conflicted', label: 'Conflicted' },
@@ -63,6 +64,7 @@ export default function DiffPanel({ session, onClose }) {
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="diffwin" role="dialog" aria-modal="true" aria-label="Changes">
+        <SkinFrame kind="dialog" />
         <div className="fhead">
           <div>
             <div className="sname">Changes</div>

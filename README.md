@@ -423,22 +423,32 @@ pill and the amber *Needs you* chip.
 ### Skins
 
 A skin changes shapes and frames, never colours, so it works with every theme,
-light or dark: **Plain** (the default), **Cyberdeck** and **HUD**. It is one
-`data-skin` attribute on the root and `src/renderer/src/skins.css`, which only
-reads theme tokens.
+light or dark: **Plain** (the default), **Cyberdeck** and **HUD**.
 
-- **Cyberdeck** — hardware. Tiles, dialogs and controls get chamfered corners
-  (`clip-path`, with the diagonal edges drawn back in the border colour so the
-  outline stays unbroken); tile screens get faint scanlines; pills become
-  parallelograms. The focused view keeps a square bottom-right corner for its
-  resize handle, and focus rings are drawn inside the edge, since a clip would
-  cut an outer one off.
-- **HUD** — a projected display. Frames are corner brackets instead of full
-  borders (they take the *Needs you* colour on a blocked tile), the deck sits on
-  a faint grid, pills are outlined readouts with a diamond marker, and the title
-  bar is a ruler.
+- **Cyberdeck** — hardware. Panels have a stepped silhouette: the top edge
+  steps down part-way along, the bottom edge steps the other way, corners are
+  chamfered, and a faint second outline traces the bezel. The screens inside
+  (tile activity, the terminal) follow the same step, and the tiles' have faint
+  scanlines. Pills are parallelograms, controls have small chamfers.
+- **HUD** — a projected display. No full outlines: frames are pieces — corner
+  brackets that step inwards at 45°, a marker square in each corner, a notched
+  bar at the top centre, and on dialogs C-shaped side pieces and a row of ticks.
+  Brackets take the *Needs you* colour on a blocked tile. The deck sits on a
+  faint grid, pills are outlined readouts, the title bar is a ruler.
 
-Neither adds motion or changes text. `npm run preview -- skin-<skin>-<theme>-<mode> out.png`
+How: `src/renderer/src/skins.js` holds the geometry — per skin and per kind
+(tile, dialog, focused window) a function of width and height that returns the
+silhouette and the frame lines in pixels. `<SkinFrame kind="…" />`, the first
+child of every tile and dialog, measures its parent, draws the lines as an SVG
+over it and clips the parent to the silhouette, so outline and shape cannot
+disagree, and 45° stays 45° at any size (a stretched SVG would skew it).
+`skins.css` colours the frames from theme tokens and does what CSS can on its
+own: screens, pills, controls, the grid and the ruler.
+
+The focused window keeps a square bottom-right corner for its resize handle.
+Clipped elements show focus on their frame, since a clip cuts an outer focus
+ring off. Neither skin adds motion or changes text.
+`npm run preview -- skin-<skin>-<theme>-<mode>[-focused|-dialog] out.png`
 renders them; the scenarios pair each skin with its natural theme and a light
 one it was not designed for.
 

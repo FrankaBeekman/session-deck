@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { duration, ago } from '../lib/format.js'
+import SkinFrame from './SkinFrame.jsx'
 
 /**
  * Shells Claude is running for this session: everything started in the
@@ -22,6 +23,7 @@ export default function ProcessesPanel({ session, onClose }) {
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="picker processes" role="dialog" aria-modal="true" aria-labelledby="proc-title">
+        <SkinFrame kind="dialog" />
         <div className="fhead">
           <div>
             <div className="sname" id="proc-title">

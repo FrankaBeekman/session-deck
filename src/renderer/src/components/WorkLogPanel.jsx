@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { quarterHours, clockTime } from '../lib/format.js'
+import SkinFrame from './SkinFrame.jsx'
 
 function label(day) {
   const d = new Date(`${day}T12:00:00`)
@@ -127,6 +128,7 @@ export default function WorkLogPanel({ onClose }) {
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="picker worklog" role="dialog" aria-modal="true" aria-labelledby="worklog-title">
+        <SkinFrame kind="dialog" />
         <div className="fhead">
           <div>
             <div className="sname" id="worklog-title">

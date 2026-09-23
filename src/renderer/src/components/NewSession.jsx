@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ipcError } from '../lib/format.js'
+import SkinFrame from './SkinFrame.jsx'
 
 const TABS = [
   { key: 'site', label: 'Local site' },
@@ -55,6 +56,7 @@ export default function NewSession({ onPickSite, onPickDirectory, onClose }) {
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="picker newsession" role="dialog" aria-modal="true" aria-labelledby="newsession-title">
+        <SkinFrame kind="dialog" />
         <div className="fhead">
           <div className="sname" id="newsession-title">
             New session

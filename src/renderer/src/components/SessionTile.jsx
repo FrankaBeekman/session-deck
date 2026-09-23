@@ -1,6 +1,7 @@
 import StatusPill from './StatusPill.jsx'
 import SessionMeta from './SessionMeta.jsx'
 import EditableName from './EditableName.jsx'
+import SkinFrame from './SkinFrame.jsx'
 
 /** Only claim "permission" when the payload actually says so. */
 export function alertLabel(kind) {
@@ -33,6 +34,7 @@ export default function SessionTile({ session, lines, onOpen, ...handlers }) {
       onClick={onOpen}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onOpen())}
     >
+      <SkinFrame kind="tile" />
       {!attached && (
         <button
           className="dismiss"

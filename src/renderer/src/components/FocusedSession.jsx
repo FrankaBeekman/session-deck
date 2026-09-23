@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import StatusPill from './StatusPill.jsx'
 import SessionMeta from './SessionMeta.jsx'
 import EditableName from './EditableName.jsx'
+import SkinFrame from './SkinFrame.jsx'
 import { alertLabel, detachedNote } from './SessionTile.jsx'
 
 const SIZE_KEY = 'deck.focusedSize'
@@ -161,6 +162,7 @@ export default function FocusedSession({ session, fontSize = 12.5, theme, onClos
         aria-modal="true"
         aria-label={session.name ?? 'Session'}
       >
+        <SkinFrame kind="window" />
         <div className="fhead">
           <div className="fheadtext">
             <EditableName session={session} />

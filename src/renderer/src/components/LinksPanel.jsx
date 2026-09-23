@@ -1,4 +1,5 @@
 import { ago } from '../lib/format.js'
+import SkinFrame from './SkinFrame.jsx'
 
 /**
  * What each kind of link panel says. Both lists are kept per project, grow
@@ -33,6 +34,7 @@ export default function LinksPanel({ kind, project, projectKey, items, onClose }
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="picker pagespanel" role="dialog" aria-modal="true" aria-label={k.title}>
+        <SkinFrame kind="dialog" />
         <div className="fhead">
           <div>
             <div className="sname">{k.title}</div>

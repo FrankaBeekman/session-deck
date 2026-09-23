@@ -11,6 +11,7 @@ import WorkLogPanel from './components/WorkLogPanel.jsx'
 import UpdatePanel from './components/UpdatePanel.jsx'
 import Appearance, { bgUrl } from './components/Appearance.jsx'
 import { applyTheme } from './themes.js'
+import { SkinContext } from './components/SkinFrame.jsx'
 import { ipcError } from './lib/format.js'
 
 /**
@@ -171,91 +172,93 @@ export default function App() {
   })
 
   return (
-    <div className="app">
-      <header className="titlebar">
-        <span className="wintitle">Session Deck</span>
-        <span className="wincount">
-          {running} running{waiting > 0 && ` · ${waiting} waiting`}
-        </span>
-        <span className="spacer" />
-        {['available', 'downloading', 'ready'].includes(update.status) && (
-          <button className="closeb titlebtn updatebtn" type="button" onClick={() => setUpdateOpen(true)}>
-            {update.status === 'ready' ? 'Restart to update' : `Update to ${update.latest}`}
+    <SkinContext.Provider value={settings.skin ?? 'plain'}>
+      <div className="app">
+        <header className="titlebar">
+          <span className="wintitle">Session Deck</span>
+          <span className="wincount">
+            {running} running{waiting > 0 && ` · ${waiting} waiting`}
+          </span>
+          <span className="spacer" />
+          {['available', 'downloading', 'ready'].includes(update.status) && (
+            <button className="closeb titlebtn updatebtn" type="button" onClick={() => setUpdateOpen(true)}>
+              {update.status === 'ready' ? 'Restart to update' : `Update to ${update.latest}`}
+            </button>
+          )}
+          <button className="closeb titlebtn" type="button" onClick={() => setWorklogOpen(true)}>
+            Worked on
           </button>
-        )}
-        <button className="closeb titlebtn" type="button" onClick={() => setWorklogOpen(true)}>
-          Worked on
-        </button>
-        <button className="closeb titlebtn" type="button" onClick={() => setAppearanceOpen(true)} title="Theme and text size">
-          Appearance
-        </button>
-        <button className="newbtn" type="button" onClick={() => setPicking(true)}>
-          + New session
-        </button>
-      </header>
-
-      {launchError && (
-        <div className="alertbar launcherror" role="alert">
-          <div className="q">
-            <b>Could not start the session</b>
-            {launchError}
-          </div>
-          <button className="closeb" type="button" onClick={() => setLaunchError(null)}>
-            Dismiss
+          <button className="closeb titlebtn" type="button" onClick={() => setAppearanceOpen(true)} title="Theme and text size">
+            Appearance
           </button>
-        </div>
-      )}
-
-      {sessions.length === 0 ? (
-        <div className="empty">
-          <p>No sessions yet.</p>
           <button className="newbtn" type="button" onClick={() => setPicking(true)}>
-            Start a session
+            + New session
           </button>
-        </div>
-      ) : (
-        <div className="deck">
-          {sessions.map((s) => (
-            <SessionTile key={s.uid} session={s} lines={lines} onOpen={() => setFocusedUid(s.uid)} {...handlers(s)} />
-          ))}
-        </div>
-      )}
+        </header>
 
-      {picking && (
-        <NewSession onPickSite={launch} onPickDirectory={launchDirectory} onClose={() => setPicking(false)} />
-      )}
-      {focused && (
-        <FocusedSession
-          session={focused}
-          fontSize={TERM_FONT[settings.termFont] ?? TERM_FONT.medium}
-          theme={`${settings.theme}:${settings.mode}`}
-          onClose={() => setFocusedUid(null)}
-          {...handlers(focused)}
-        />
-      )}
-      {/* After the focused view, so a panel opened from it stacks on top. */}
-      {summarySession && <SummaryPanel session={summarySession} onClose={() => setSummaryUid(null)} />}
-      {diffSession && <DiffPanel session={diffSession} onClose={() => setDiffUid(null)} />}
-      {todoSession && <ChecklistPanel session={todoSession} onClose={() => setTodoUid(null)} />}
-      {procSession && <ProcessesPanel session={procSession} onClose={() => setProcUid(null)} />}
-      {worklogOpen && <WorkLogPanel onClose={() => setWorklogOpen(false)} />}
-      {updateOpen && <UpdatePanel state={update} running={sessions.filter((s) => s.attached).length} onClose={() => setUpdateOpen(false)} />}
-      {appearanceOpen && (
-        <Appearance
-          settings={settings}
-          onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
-          onClose={() => setAppearanceOpen(false)}
-        />
-      )}
-      {linksSession && (
-        <LinksPanel
-          kind={links.kind}
-          project={linksSession.project}
-          projectKey={linksSession.projectKey}
-          items={links.kind === 'prs' ? linksSession.pullRequests : linksSession.testPages}
-          onClose={() => setLinks(null)}
-        />
-      )}
-    </div>
+        {launchError && (
+          <div className="alertbar launcherror" role="alert">
+            <div className="q">
+              <b>Could not start the session</b>
+              {launchError}
+            </div>
+            <button className="closeb" type="button" onClick={() => setLaunchError(null)}>
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {sessions.length === 0 ? (
+          <div className="empty">
+            <p>No sessions yet.</p>
+            <button className="newbtn" type="button" onClick={() => setPicking(true)}>
+              Start a session
+            </button>
+          </div>
+        ) : (
+          <div className="deck">
+            {sessions.map((s) => (
+              <SessionTile key={s.uid} session={s} lines={lines} onOpen={() => setFocusedUid(s.uid)} {...handlers(s)} />
+            ))}
+          </div>
+        )}
+
+        {picking && (
+          <NewSession onPickSite={launch} onPickDirectory={launchDirectory} onClose={() => setPicking(false)} />
+        )}
+        {focused && (
+          <FocusedSession
+            session={focused}
+            fontSize={TERM_FONT[settings.termFont] ?? TERM_FONT.medium}
+            theme={`${settings.theme}:${settings.mode}`}
+            onClose={() => setFocusedUid(null)}
+            {...handlers(focused)}
+          />
+        )}
+        {/* After the focused view, so a panel opened from it stacks on top. */}
+        {summarySession && <SummaryPanel session={summarySession} onClose={() => setSummaryUid(null)} />}
+        {diffSession && <DiffPanel session={diffSession} onClose={() => setDiffUid(null)} />}
+        {todoSession && <ChecklistPanel session={todoSession} onClose={() => setTodoUid(null)} />}
+        {procSession && <ProcessesPanel session={procSession} onClose={() => setProcUid(null)} />}
+        {worklogOpen && <WorkLogPanel onClose={() => setWorklogOpen(false)} />}
+        {updateOpen && <UpdatePanel state={update} running={sessions.filter((s) => s.attached).length} onClose={() => setUpdateOpen(false)} />}
+        {appearanceOpen && (
+          <Appearance
+            settings={settings}
+            onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+            onClose={() => setAppearanceOpen(false)}
+          />
+        )}
+        {linksSession && (
+          <LinksPanel
+            kind={links.kind}
+            project={linksSession.project}
+            projectKey={linksSession.projectKey}
+            items={links.kind === 'prs' ? linksSession.pullRequests : linksSession.testPages}
+            onClose={() => setLinks(null)}
+          />
+        )}
+      </div>
+    </SkinContext.Provider>
   )
 }

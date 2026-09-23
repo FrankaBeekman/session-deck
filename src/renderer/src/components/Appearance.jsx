@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 
 import { THEMES, swatchFor } from '../themes.js'
+import { SKINS } from '../skins.js'
+import SkinFrame from './SkinFrame.jsx'
 
 export const bgUrl = (path) => `deckbg://img/${encodeURIComponent(path)}`
 
@@ -14,12 +16,6 @@ const MODES = [
   { key: 'system', label: 'Auto' },
   { key: 'light', label: 'Light' },
   { key: 'dark', label: 'Dark' }
-]
-
-const SKINS = [
-  { key: 'plain', label: 'Plain', title: 'Rounded corners, no frames' },
-  { key: 'cyberdeck', label: 'Cyberdeck', title: 'Cut corners and scanlined screens, like hardware' },
-  { key: 'hud', label: 'HUD', title: 'Corner brackets, a grid and a ruler, like a ship’s display' }
 ]
 
 export const SIZES = [
@@ -89,6 +85,7 @@ export default function Appearance({ settings, onChange, onClose }) {
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="picker appearance" role="dialog" aria-modal="true" aria-labelledby="appearance-title">
+        <SkinFrame kind="dialog" />
         <div className="fhead">
           <div className="sname" id="appearance-title">
             Appearance
