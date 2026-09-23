@@ -19,7 +19,8 @@ const [scenario = 'deck', out = 'preview.png', w = '1180', h = '820'] = process.
 
 const SCENARIOS = {
   deck: [],
-  pages: ["[...document.querySelectorAll('.links a')].find(a => /^all/.test(a.textContent)).click()"],
+  prs: ["[...document.querySelectorAll('.links a')].find(a => a.title === 'Pull requests reported for this project').click()"],
+  pages: ["[...document.querySelectorAll('.links a')].find(a => a.title === 'Test pages recorded for this project').click()"],
   diff: ["[...document.querySelectorAll('.links a')].find(a => /Diff/.test(a.textContent)).click()"],
   focused: ["document.querySelector('.card').click()"],
   new: ["document.querySelector('.titlebar .newbtn').click()"],

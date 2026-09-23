@@ -82,6 +82,7 @@ class Registry extends EventEmitter {
     this.store.worklog ??= {}
     this.store.todos ??= {}
     this.store.pullRequests ??= {}
+    this.store.ticketOverrides ??= {}
     this.restore()
     this.scanTimer = setInterval(() => this.scanProcesses(), SCAN_INTERVAL)
   }
@@ -605,7 +606,23 @@ class Registry extends EventEmitter {
   }
 
   worklogFor(day) {
-    return worklog.summarize(this.store.worklog, day)
+    return worklog.summarize(this.store.worklog, day, this.store.ticketOverrides)
+  }
+
+  /**
+   * Set a session's ticket by hand, or clear it back to the detected one with an
+   * empty value. Keyed like the work log, so it applies on every day the
+   * session ran and on its tile.
+   */
+  setTicket(key, text) {
+    const clean = String(text ?? '').trim()
+    const ticket = worklog.normalizeTicket(clean)
+    if (clean && !ticket) return false
+    if (ticket) this.store.ticketOverrides[key] = ticket
+    else delete this.store.ticketOverrides[key]
+    save(this.store)
+    this.emit('change', this.serialize())
+    return true
   }
 
   // --------------------------------------------------------------- tickets
@@ -613,10 +630,14 @@ class Registry extends EventEmitter {
   /**
    * The ticket a session is on, from its branch (feature/EXC-207-…) or its name.
    * Linked only once a base URL is known — learned from any ticket URL pasted
-   * into a prompt, or set in Appearance. Read-only: a link, nothing else.
+   * into a prompt, or set in Appearance. A ticket set by hand in "Worked on"
+   * wins. Read-only: a link, nothing else.
    */
   ticketFor(session) {
-    const key = worklog.ticketsIn(`${session.branch ?? ''} ${session.name ?? ''}`)[0] ?? null
+    const key =
+      this.store.ticketOverrides[session.deckId ?? session.id] ??
+      worklog.ticketsIn(`${session.branch ?? ''} ${session.name ?? ''}`)[0] ??
+      null
     if (!key) return null
     const base = this.store.ticketBase
     return { key, url: base ? `${base.replace(/\/+$/, '')}/${key}` : null }
@@ -664,10 +685,23 @@ class Registry extends EventEmitter {
     return true
   }
 
+  pullRequestsFor(project) {
+    return this.store.pullRequests[this.projectKey(project)] ?? []
+  }
+
+  forgetPullRequest(projectKey, prId) {
+    const list = this.store.pullRequests[projectKey] ?? []
+    const next = list.filter((e) => e.id !== prId)
+    if (next.length === list.length) return false
+    this.store.pullRequests[projectKey] = next
+    save(this.store)
+    this.emit('change', this.serialize())
+    return true
+  }
+
   /** The PR for what this session is on: its branch first, else its own latest. */
   pullRequestFor(s) {
-    const list = this.store.pullRequests[this.projectKey(s.project)] ?? []
-    const byTime = [...list].sort((a, b) => b.at - a.at)
+    const byTime = [...this.pullRequestsFor(s.project)].sort((a, b) => b.at - a.at)
     return (
       (s.branch && byTime.find((p) => p.branch === s.branch)) ||
       byTime.find((p) => p.sessionId === s.id) ||
@@ -809,6 +843,7 @@ class Registry extends EventEmitter {
       repoName: s.repoName,
       testPages: this.pagesFor(s.project),
       pullRequest: this.pullRequestFor(s),
+      pullRequests: this.pullRequestsFor(s.project),
       ticket: this.ticketFor(s),
       todos: this.store.todos[this.projectKey(s.project)] ?? [],
       processes: s.processes,

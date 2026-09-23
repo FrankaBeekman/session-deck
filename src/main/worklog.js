@@ -13,6 +13,12 @@ const MIN_BLOCK = 60 * 1000
 const TICKET = /\b([A-Z][A-Z0-9]{1,9}-\d{1,6})\b/g
 const NOT_TICKETS = new Set(['UTF', 'ISO', 'SHA', 'PHP', 'WCAG', 'TLS', 'HTTP', 'AES', 'RSA', 'CVE', 'ES', 'MD', 'X', 'GPT', 'RFC'])
 
+/** A key typed by hand: same shape as a detected one, any case. */
+export function normalizeTicket(text) {
+  const clean = String(text ?? '').trim().toUpperCase()
+  return /^[A-Z][A-Z0-9]{1,9}-\d{1,6}$/.test(clean) ? clean : null
+}
+
 export function dayKey(ts) {
   const d = new Date(ts)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -48,15 +54,21 @@ export function record(log, entry) {
   }
 }
 
-export function summarize(log, day) {
+/**
+ * `overrides` maps a session key to a ticket set by hand. It wins over the one
+ * detected from prompts, names and branches, which guesses wrong now and then.
+ */
+export function summarize(log, day, overrides = {}) {
   const rows = Object.values(log[day] ?? {}).map((row) => {
     const ms = row.blocks.reduce((sum, [a, b]) => sum + Math.max(b - a, MIN_BLOCK), 0)
-    const ticket = Object.entries(row.tickets).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+    const detected = Object.entries(row.tickets).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
     return {
       key: row.key,
       project: row.project ?? 'unknown',
       name: row.name ?? null,
-      ticket,
+      ticket: overrides[row.key] ?? detected,
+      detected,
+      edited: Boolean(overrides[row.key]),
       minutes: Math.round(ms / 60000),
       first: row.blocks[0]?.[0] ?? null,
       last: row.blocks.at(-1)?.[1] ?? null,

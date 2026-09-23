@@ -5,8 +5,8 @@ import BranchIcon from './BranchIcon.jsx'
  * view alike, so the two cannot drift apart. `full` (the focused view) also
  * shows entry points that are empty, so you can add a to-do before there is one.
  */
-export default function SessionMeta({ session, full = false, onShowPages, onShowDiff, onReopen, onShowTodos, onShowProcesses }) {
-  const { testPages, branch, repoName, canReopen, attached, external, status, pullRequest, ticket, todos, processes, finished, appName } = session
+export default function SessionMeta({ session, full = false, onShowPages, onShowPrs, onShowDiff, onReopen, onShowTodos, onShowProcesses }) {
+  const { testPages, branch, repoName, canReopen, attached, external, status, pullRequest, pullRequests, ticket, todos, processes, finished, appName } = session
   const latest = testPages.length ? testPages.reduce((a, b) => (b.at > a.at ? b : a)) : null
   const openTodos = todos.filter((t) => !t.done).length
   const act = (fn) => (e) => {
@@ -37,12 +37,18 @@ export default function SessionMeta({ session, full = false, onShowPages, onShow
           PR ↗
         </a>
       )}
+      {/* Same pattern as test pages: the latest links straight out, "all N" lists them. */}
+      {pullRequests.length > 0 && (
+        <a href="#" onClick={act(onShowPrs)} title="Pull requests reported for this project">
+          {pullRequest ? `all ${pullRequests.length}` : `PRs (${pullRequests.length})`}
+        </a>
+      )}
       {latest ? (
         <>
           <a href="#" title={latest.url} onClick={act(() => window.deck.openExternal(latest.url))}>
             Test page ↗
           </a>
-          <a href="#" onClick={act(onShowPages)}>
+          <a href="#" onClick={act(onShowPages)} title="Test pages recorded for this project">
             all {testPages.length}
           </a>
         </>

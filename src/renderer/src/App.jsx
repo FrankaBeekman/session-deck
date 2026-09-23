@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import SessionTile from './components/SessionTile.jsx'
 import FocusedSession from './components/FocusedSession.jsx'
 import NewSession from './components/NewSession.jsx'
-import TestPagesPanel from './components/TestPagesPanel.jsx'
+import LinksPanel from './components/LinksPanel.jsx'
 import DiffPanel from './components/DiffPanel.jsx'
 import ChecklistPanel from './components/ChecklistPanel.jsx'
 import ProcessesPanel from './components/ProcessesPanel.jsx'
@@ -51,7 +51,7 @@ export default function App() {
   // All selection keys on `uid`: a session's `id` can change underneath it.
   const [focusedUid, setFocusedUid] = useState(null)
   const [picking, setPicking] = useState(false)
-  const [pagesUid, setPagesUid] = useState(null)
+  const [links, setLinks] = useState(null) // { uid, kind: 'pages' | 'prs' }
   const [diffUid, setDiffUid] = useState(null)
   const [todoUid, setTodoUid] = useState(null)
   const [procUid, setProcUid] = useState(null)
@@ -106,7 +106,7 @@ export default function App() {
     // view returns to the terminal instead of dismissing both.
     const onKey = (e) => {
       if (e.key !== 'Escape') return
-      if (pagesUid) return setPagesUid(null)
+      if (links) return setLinks(null)
       if (diffUid) return setDiffUid(null)
       if (todoUid) return setTodoUid(null)
       if (procUid) return setProcUid(null)
@@ -118,7 +118,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pagesUid, diffUid, todoUid, procUid, updateOpen, worklogOpen, appearanceOpen, picking])
+  }, [links, diffUid, todoUid, procUid, updateOpen, worklogOpen, appearanceOpen, picking])
 
   const reopen = useCallback(async (uid) => {
     try {
@@ -144,7 +144,7 @@ export default function App() {
 
   const byUid = (uid) => sessions.find((s) => s.uid === uid) ?? null
   const focused = byUid(focusedUid)
-  const pagesSession = byUid(pagesUid)
+  const linksSession = links && byUid(links.uid)
   const diffSession = byUid(diffUid)
   const todoSession = byUid(todoUid)
   const procSession = byUid(procUid)
@@ -153,7 +153,8 @@ export default function App() {
   const lines = LINES[settings.density] ?? LINES.small
 
   const handlers = (s) => ({
-    onShowPages: () => setPagesUid(s.uid),
+    onShowPages: () => setLinks({ uid: s.uid, kind: 'pages' }),
+    onShowPrs: () => setLinks({ uid: s.uid, kind: 'prs' }),
     onShowDiff: () => setDiffUid(s.uid),
     onShowTodos: () => setTodoUid(s.uid),
     onShowProcesses: () => setProcUid(s.uid),
@@ -236,12 +237,13 @@ export default function App() {
           onClose={() => setAppearanceOpen(false)}
         />
       )}
-      {pagesSession && (
-        <TestPagesPanel
-          project={pagesSession.project}
-          projectKey={pagesSession.projectKey}
-          pages={pagesSession.testPages}
-          onClose={() => setPagesUid(null)}
+      {linksSession && (
+        <LinksPanel
+          kind={links.kind}
+          project={linksSession.project}
+          projectKey={linksSession.projectKey}
+          items={links.kind === 'prs' ? linksSession.pullRequests : linksSession.testPages}
+          onClose={() => setLinks(null)}
         />
       )}
     </div>

@@ -24,7 +24,7 @@ const base = (o) => ({
   activity: [], question: null, questionKind: null, testPages: [],
   branch: null, repoName: null, startedAt: now - 90 * min, updatedAt: now,
   projectKey: 'site-a', canReopen: false, nameSource: 'prompt',
-  pullRequest: null, ticket: null, todos: [], processes: [], finished: [], appName: null,
+  pullRequest: null, pullRequests: [], ticket: null, todos: [], processes: [], finished: [], appName: null,
   ...o, uid: o.id
 })
 
@@ -37,6 +37,11 @@ exports.sessions = [
     testPages: pages(6), branch: 'feature/EXC-207-vacancy-filter', repoName: 'example-theme',
     ticket: { key: 'EXC-207', url: 'https://example.atlassian.net/browse/EXC-207' },
     pullRequest: { url: 'https://bitbucket.org/example/example-theme/pull-requests/42', title: 'EXC-207 Vacancy department filter', branch: 'feature/EXC-207-vacancy-filter', at: now - 20 * min },
+    pullRequests: [
+      { id: 'pr1', url: 'https://bitbucket.org/example/example-theme/pull-requests/42', title: 'EXC-207 Vacancy department filter', branch: 'feature/EXC-207-vacancy-filter', at: now - 20 * min, sessionName: 'Vacancy filter block with department facets' },
+      { id: 'pr2', url: 'https://bitbucket.org/example/example-theme/pull-requests/39', title: null, branch: 'bugfix/EXC-198-quote-padding', at: now - 26 * 60 * min, sessionName: 'Chrome padding on the quote page' },
+      { id: 'pr3', url: 'https://bitbucket.org/example/example-theme/pull-requests/35', title: 'EXC-190 Footer navigation spacing', branch: 'feature/EXC-190-footer-nav', at: now - 4 * 24 * 60 * min, sessionName: null }
+    ],
     todos: [
       { id: 't1', text: 'Clear the page cache on staging after deploying', done: false, at: now - 30 * min, sessionName: 'Vacancy filter block with department facets', source: 'claude' },
       { id: 't2', text: 'Check the filter on iOS Safari — the select element renders natively there', done: false, at: now - 25 * min, sessionName: 'Vacancy filter block with department facets', source: 'claude' },

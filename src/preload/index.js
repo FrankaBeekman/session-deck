@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('deck', {
   setTicketBase: (url) => ipcRenderer.invoke('deck:set-ticket-base', url),
   worklogDays: () => ipcRenderer.invoke('deck:worklog-days'),
   worklog: (day) => ipcRenderer.invoke('deck:worklog', day),
+  setTicket: (key, ticket) => ipcRenderer.invoke('deck:set-ticket', { key, ticket }),
   launch: (projectId) => ipcRenderer.invoke('deck:launch', projectId),
   chooseDirectory: () => ipcRenderer.invoke('deck:choose-directory'),
   launchDirectory: (dir) => ipcRenderer.invoke('deck:launch-directory', dir),
@@ -32,6 +33,7 @@ contextBridge.exposeInMainWorld('deck', {
   rename: (sessionId, name) => ipcRenderer.send('deck:rename', { sessionId, name }),
   forgetTestPage: (projectKey, pageId) =>
     ipcRenderer.send('deck:forget-test-page', { projectKey, pageId }),
+  forgetPullRequest: (projectKey, prId) => ipcRenderer.send('deck:forget-pull-request', { projectKey, prId }),
   openExternal: (url) => ipcRenderer.send('deck:open-external', url),
   updateState: () => ipcRenderer.invoke('deck:update-state'),
   checkForUpdate: () => ipcRenderer.invoke('deck:update-check'),

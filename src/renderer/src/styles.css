@@ -821,8 +821,25 @@ body {
 .workproject { font-size: .8rem; color: var(--ink-2); }
 .workhours { font-family: var(--f-mono); font-size: .84rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .worksessions { list-style: none; margin: 5px 0 0; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 3px; }
-.worksessions li { display: flex; gap: 10px; justify-content: space-between; align-items: baseline; }
-.worksession { font-size: .76rem; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workrow { display: flex; gap: 10px; align-items: baseline; }
+.worksession { flex: 1; font-size: .76rem; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ticketedit {
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  font: inherit;
+  font-size: .66rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.ticketedit:hover, .ticketedit[aria-expanded="true"] { color: var(--accent); }
+.ticketedit:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 2px; }
+.ticketform { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 5px 0 4px; }
+.ticketinput { margin: 0; width: 11ch; padding: 4px 8px; font-family: var(--f-mono); font-size: .74rem; text-transform: uppercase; }
+.ticketform .closeb { margin-left: 0; }
+.ticketform .newbtn { padding: 4px 10px; font-size: .72rem; }
+.ticketerror { flex-basis: 100%; font-size: .72rem; }
 .worktime { font-family: var(--f-mono); font-size: .64rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .worktime s { text-decoration: none; color: var(--line-2); }
 .worklogempty { padding: 20px 15px; }

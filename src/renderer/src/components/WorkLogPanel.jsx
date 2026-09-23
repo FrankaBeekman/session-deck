@@ -13,6 +13,65 @@ function label(day) {
 }
 
 /**
+ * Set a session's ticket by hand. Empty clears it back to the detected one.
+ * Escape cancels here rather than closing the whole panel.
+ */
+function TicketForm({ row, onDone }) {
+  const [draft, setDraft] = useState(row.edited ? row.ticket : '')
+  const [error, setError] = useState(null)
+
+  const save = async (value) => {
+    if (await window.deck.setTicket(row.key, value)) onDone(true)
+    else setError('Use a ticket key like EXC-207.')
+  }
+
+  return (
+    <form
+      className="ticketform"
+      onSubmit={(e) => {
+        e.preventDefault()
+        save(draft)
+      }}
+    >
+      <input
+        className="filter ticketinput"
+        autoFocus
+        value={draft}
+        placeholder={row.detected ?? 'EXC-207'}
+        aria-label={`Ticket for ${row.name ?? 'this session'}`}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `ticketerr-${row.key}` : undefined}
+        onChange={(e) => {
+          setDraft(e.target.value)
+          setError(null)
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== 'Escape') return
+          e.stopPropagation()
+          onDone(false)
+        }}
+      />
+      <button className="newbtn" type="submit">
+        Save
+      </button>
+      {row.edited && (
+        <button className="closeb" type="button" onClick={() => save('')} title="Forget the ticket set by hand">
+          Use {row.detected ?? 'no ticket'}
+        </button>
+      )}
+      <button className="closeb" type="button" onClick={() => onDone(false)}>
+        Cancel
+      </button>
+      {error && (
+        <span className="formerror ticketerror" id={`ticketerr-${row.key}`} role="alert">
+          {error}
+        </span>
+      )}
+    </form>
+  )
+}
+
+/**
  * A local reference for logging hours: active time per session per day, grouped
  * by ticket. Nothing here is sent anywhere — copy it into the time tracker.
  */
@@ -21,6 +80,7 @@ export default function WorkLogPanel({ onClose }) {
   const [index, setIndex] = useState(0)
   const [data, setData] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [editing, setEditing] = useState(null) // a row key
 
   useEffect(() => {
     window.deck.worklogDays().then(setDays)
@@ -30,8 +90,14 @@ export default function WorkLogPanel({ onClose }) {
   useEffect(() => {
     if (!day) return
     setData(null)
+    setEditing(null)
     window.deck.worklog(day).then(setData)
   }, [day])
+
+  const doneEditing = (changed) => {
+    setEditing(null)
+    if (changed) window.deck.worklog(day).then(setData)
+  }
 
   const groups = useMemo(() => {
     if (!data) return []
@@ -110,10 +176,22 @@ export default function WorkLogPanel({ onClose }) {
                   <ul className="worksessions">
                     {g.rows.map((r) => (
                       <li key={r.key}>
-                        <span className="worksession">{r.name ?? 'unnamed session'}</span>
-                        <span className="worktime">
-                          {clockTime(r.first)}–{clockTime(r.last)} <s>•</s> {r.minutes}m
-                        </span>
+                        <div className="workrow">
+                          <span className="worksession">{r.name ?? 'unnamed session'}</span>
+                          <button
+                            type="button"
+                            className="ticketedit"
+                            aria-expanded={editing === r.key}
+                            aria-label={`${r.ticket ? 'Change' : 'Add'} the ticket for ${r.name ?? 'this session'}`}
+                            onClick={() => setEditing(editing === r.key ? null : r.key)}
+                          >
+                            {r.edited ? '✎ set by hand' : r.ticket ? '✎ ticket' : '+ ticket'}
+                          </button>
+                          <span className="worktime">
+                            {clockTime(r.first)}–{clockTime(r.last)} <s>•</s> {r.minutes}m
+                          </span>
+                        </div>
+                        {editing === r.key && <TicketForm row={r} onDone={doneEditing} />}
                       </li>
                     ))}
                   </ul>

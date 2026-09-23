@@ -195,6 +195,7 @@ app.whenReady().then(() => {
   ipcMain.handle('deck:set-ticket-base', (_e, url) => registry.setTicketBase(url))
   ipcMain.handle('deck:worklog-days', () => registry.worklogDays())
   ipcMain.handle('deck:worklog', (_e, day) => registry.worklogFor(day))
+  ipcMain.handle('deck:set-ticket', (_e, { key, ticket }) => registry.setTicket(key, ticket))
 
   ipcMain.handle('deck:resume', (_e, sessionId) => registry.reopen(sessionId)?.id ?? null)
   ipcMain.on('deck:rename', (_e, { sessionId, name }) => registry.setName(sessionId, name, 'user'))
@@ -245,6 +246,7 @@ app.whenReady().then(() => {
   ipcMain.on('deck:forget-test-page', (_e, { projectKey, pageId }) =>
     registry.forgetTestPage(projectKey, pageId)
   )
+  ipcMain.on('deck:forget-pull-request', (_e, { projectKey, prId }) => registry.forgetPullRequest(projectKey, prId))
   ipcMain.on('deck:open-external', (_e, url) => shell.openExternal(url))
 
   app.on('activate', () => {

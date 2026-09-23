@@ -56,7 +56,7 @@ contextBridge.exposeInMainWorld('deck', {
   gitRepos: async () => f.repos,
   gitDiff: async () => ({ text: f.diff, truncated: false, error: null }),
   write: () => {}, close: () => {}, remove: () => {}, rename: () => {},
-  forgetTestPage: () => {}, openExternal: () => {}, focusExternal: () => {},
+  forgetTestPage: () => {}, forgetPullRequest: () => {}, setTicket: async () => true, openExternal: () => {}, focusExternal: () => {},
   onSessions: (cb) => { listeners.push(cb); return () => {} },
   updateState: async () => ({ status: 'none', current: '0.2.0' }),
   checkForUpdate: async () => {}, downloadUpdate: async () => {}, installUpdate: async () => {},

@@ -177,7 +177,9 @@ only in the focused view, at the PTY's pinned 120×32, and is disposed on close.
 - `set_session_name(name)` — names the tile
 - `report_test_page(url, title?)` — the test page link
 - `report_pull_request(url, title?)` — the PR link. Reported rather than looked
-  up: the repos are on Bitbucket, which needs an API token to query.
+  up: the repos are on Bitbucket, which needs an API token to query. Kept per
+  project (the last 50) like test pages: a tile links the PR for its branch and
+  offers "all N" for the rest, each forgettable.
 - `add_user_todo(text)` — an item on the user's after-Claude checklist
 
 Its handshake also returns `instructions` saying *when* to use each tool — that is
@@ -343,7 +345,9 @@ Claude through `add_user_todo`, or by hand.
 
 **Worked on.** Active time per session per day, grouped by ticket (parsed from
 prompts, names and branches), for logging hours by hand. A silence over 10
-minutes ends a block. Stored as compact blocks in `store.json`, built once from
+minutes ends a block. A wrong or missing ticket can be set by hand per session
+(`ticketOverrides` in `store.json`); it applies on every day that session ran
+and on its tile, and clearing it returns to the detected one. Stored as compact blocks in `store.json`, built once from
 the hook log's history. **Local only** — nothing is sent anywhere.
 
 **The hook log** keeps what explains behaviour and drops bulk (Write/Edit
@@ -442,7 +446,7 @@ does not load eight full-size images into the window.
 
 A tile shows the ticket it is on, taken from the branch (`feature/EXC-207-…`) or
 the session name — the same parsing the hours list uses, so `php-8.3` is not
-mistaken for a ticket.
+mistaken for a ticket. A ticket set by hand in *Worked on* wins.
 
 It becomes a link once the deck knows where tickets live. That is learned from
 any ticket URL pasted into a prompt (`…/browse/AS-23230`), or set in Appearance.
