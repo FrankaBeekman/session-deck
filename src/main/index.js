@@ -45,6 +45,7 @@ function applyMenu() {
       label: 'Session Deck',
       submenu: [
         { role: 'about', label: 'About Session Deck' },
+        { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: () => send('deck:settings-open') },
         {
           label: 'Check for Updates…',
           click: () => {

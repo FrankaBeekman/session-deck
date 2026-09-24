@@ -391,11 +391,13 @@ Claude, which the deck reads incrementally from the transcript's `custom-title`
 entries; between those two the latest wins. Deck renames are stored in
 `store.json`. They do not rename the session inside Claude.
 
-## Appearance
+## Settings
 
-One menu in the title bar: **theme**, **light or dark**, **skin**, **tile height**, **tile
-text size**, **terminal text size**, and where ticket links point. Settings are
-per machine (`localStorage`); the ticket base URL is shared (`store.json`).
+One panel, from the title bar or *Session Deck → Settings…* (⌘,): **theme**,
+**light or dark**, **skin**, **background**, **tile height**, **tile text size**,
+**terminal text size**, where ticket links point, and **check for updates** with
+the running version. Looks are per machine (`localStorage`); the ticket base URL
+is shared (`store.json`).
 
 Seven themes, each with a light and a dark version (Auto follows the system):
 **Plum**, **Cyberpunk** (electric blue, neon red), **Spaceship** (steel navy,
@@ -404,7 +406,7 @@ teal, amber), **Nature** (paper and moss), **Electric** (a live yellow wire),
 
 All 14 palettes live in `src/renderer/src/themes.js` and are applied as CSS
 variables at runtime — not 14 blocks of CSS. One source of truth, and the
-Appearance swatches read from it, so they cannot drift from the real colours.
+swatches in Settings read from it, so they cannot drift from the real colours.
 Only the default light and dark sets are in CSS, as what shows before the script
 runs.
 
@@ -481,7 +483,7 @@ the session name — the same parsing the hours list uses, so `php-8.3` is not
 mistaken for a ticket. A ticket set by hand in *Worked on* wins.
 
 It becomes a link once the deck knows where tickets live. That is learned from
-any ticket URL pasted into a prompt (`…/browse/AS-23230`), or set in Appearance.
+any ticket URL pasted into a prompt (`…/browse/AS-23230`), or set in Settings.
 Tickets are only ever linked — never read, never changed.
 
 ## Session summaries

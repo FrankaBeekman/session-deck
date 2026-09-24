@@ -6,7 +6,7 @@
  * glance in all of them, so it may never be mistaken for the accent.
  *
  * Applied as CSS variables at runtime rather than written out as 14 CSS blocks:
- * one source of truth, and the Appearance swatches read from it too.
+ * one source of truth, and the swatches in Settings read from it too.
  */
 
 const LIGHT = {

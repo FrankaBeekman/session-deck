@@ -9,7 +9,7 @@ import ChecklistPanel from './components/ChecklistPanel.jsx'
 import ProcessesPanel from './components/ProcessesPanel.jsx'
 import WorkLogPanel from './components/WorkLogPanel.jsx'
 import UpdatePanel from './components/UpdatePanel.jsx'
-import Appearance, { bgUrl } from './components/Appearance.jsx'
+import Settings, { bgUrl } from './components/Settings.jsx'
 import { applyTheme } from './themes.js'
 import { SkinContext } from './components/SkinFrame.jsx'
 import { ipcError } from './lib/format.js'
@@ -61,7 +61,7 @@ export default function App() {
   const [procUid, setProcUid] = useState(null)
   const [worklogOpen, setWorklogOpen] = useState(false)
   const [settings, setSettings] = useState(readSettings)
-  const [appearanceOpen, setAppearanceOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [launchError, setLaunchError] = useState(null)
   const [update, setUpdate] = useState({ status: 'idle' })
   const [updateOpen, setUpdateOpen] = useState(false)
@@ -70,9 +70,11 @@ export default function App() {
     window.deck.updateState().then(setUpdate)
     const offState = window.deck.onUpdate(setUpdate)
     const offOpen = window.deck.onUpdateOpen(() => setUpdateOpen(true))
+    const offSettings = window.deck.onSettingsOpen(() => setSettingsOpen(true))
     return () => {
       offState()
       offOpen()
+      offSettings()
     }
   }, [])
 
@@ -120,13 +122,13 @@ export default function App() {
       if (procUid) return setProcUid(null)
       if (updateOpen) return setUpdateOpen(false)
       if (worklogOpen) return setWorklogOpen(false)
-      if (appearanceOpen) return setAppearanceOpen(false)
+      if (settingsOpen) return setSettingsOpen(false)
       if (picking) return setPicking(false)
       setFocusedUid(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [links, summaryUid, diffUid, todoUid, procUid, updateOpen, worklogOpen, appearanceOpen, picking])
+  }, [links, summaryUid, diffUid, todoUid, procUid, updateOpen, worklogOpen, settingsOpen, picking])
 
   const reopen = useCallback(async (uid) => {
     try {
@@ -188,8 +190,8 @@ export default function App() {
           <button className="closeb titlebtn" type="button" onClick={() => setWorklogOpen(true)}>
             Worked on
           </button>
-          <button className="closeb titlebtn" type="button" onClick={() => setAppearanceOpen(true)} title="Theme and text size">
-            Appearance
+          <button className="closeb titlebtn" type="button" onClick={() => setSettingsOpen(true)} title="Theme, skin, text sizes, ticket links and updates">
+            Settings
           </button>
           <button className="newbtn" type="button" onClick={() => setPicking(true)}>
             + New session
@@ -242,14 +244,14 @@ export default function App() {
         {procSession && <ProcessesPanel session={procSession} onClose={() => setProcUid(null)} />}
         {worklogOpen && <WorkLogPanel onClose={() => setWorklogOpen(false)} />}
         {updateOpen && <UpdatePanel state={update} running={sessions.filter((s) => s.attached).length} onClose={() => setUpdateOpen(false)} />}
-        {appearanceOpen && (
-          <Appearance
+        {settingsOpen && (
+          <Settings
             settings={settings}
             onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
-            onClose={() => setAppearanceOpen(false)}
+            onClose={() => setSettingsOpen(false)}
             version={update.current}
             onCheckUpdates={() => {
-              setAppearanceOpen(false)
+              setSettingsOpen(false)
               setUpdateOpen(true)
               window.deck.checkForUpdate()
             }}

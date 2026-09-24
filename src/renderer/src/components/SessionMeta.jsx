@@ -23,7 +23,7 @@ export default function SessionMeta({ session, full = false, onShowPages, onShow
             {ticket.key}
           </a>
         ) : (
-          <span className="ticketlink" title="Set a ticket URL in Appearance to link this">
+          <span className="ticketlink" title="Set a ticket URL in Settings to link this">
             {ticket.key}
           </span>
         ))}

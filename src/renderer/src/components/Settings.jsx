@@ -54,8 +54,8 @@ function Segmented({ value, onChange, options, name }) {
   )
 }
 
-/** Theme, sizes, where ticket links point, and a way to check for updates. */
-export default function Appearance({ settings, onChange, onClose, version, onCheckUpdates }) {
+/** Settings: theme and skin, sizes, where ticket links point, and updates. */
+export default function Settings({ settings, onChange, onClose, version, onCheckUpdates }) {
   const [ticketBase, setTicketBase] = useState('')
   const [saved, setSaved] = useState(false)
   const [backgrounds, setBackgrounds] = useState({ dir: null, images: [] })
@@ -84,11 +84,11 @@ export default function Appearance({ settings, onChange, onClose, version, onChe
 
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="picker appearance" role="dialog" aria-modal="true" aria-labelledby="appearance-title">
+      <div className="picker settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
         <SkinFrame kind="dialog" />
         <div className="fhead">
-          <div className="sname" id="appearance-title">
-            Appearance
+          <div className="sname" id="settings-title">
+            Settings
           </div>
           <button className="closeb" type="button" onClick={onClose}>
             Esc · close

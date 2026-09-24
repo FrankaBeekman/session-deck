@@ -26,7 +26,7 @@ const SCENARIOS = {
   focused: ["document.querySelector('.card').click()"],
   new: ["document.querySelector('.titlebar .newbtn').click()"],
   newdir: ["document.querySelector('.titlebar .newbtn').click()", "document.querySelector('#tab-directory').click()"],
-  appearance: ["[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"],
+  appearance: ["[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()"],
   // Themes are applied from JS now, so a scenario sets the saved settings and reloads.
   ...Object.fromEntries(
     ['candy', 'gothic', 'cyberpunk', 'nature', 'electric', 'spaceship', 'default'].flatMap((theme) =>
@@ -52,7 +52,7 @@ const SCENARIOS = {
       'bg-nebula': [set("{ theme: 'spaceship', mode: 'dark', tileOpacity: 0.7, background: { path: " + JSON.stringify(files.includes('08-nebula.jpg') ? join(dir, '08-nebula.jpg') : null) + ", dim: 'subtle' } }")],
       'bg-blossom': [set("{ theme: 'candy', mode: 'light', tileOpacity: 0.72, background: { path: " + JSON.stringify(files.includes('07-blossom.jpg') ? join(dir, '07-blossom.jpg') : null) + ", dim: 'subtle' } }")],
       'bg-subtle': [set("{ background: { path: " + JSON.stringify(first ? join(dir, first) : null) + ", dim: 'subtle' } }")],
-      'bg-panel': [set('{}'), "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"]
+      'bg-panel': [set('{}'), "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()"]
     }
   })(),
   // Skins, each with its natural theme and a mismatched one: they must hold up in any.
@@ -62,7 +62,7 @@ const SCENARIOS = {
       return [
         [`skin-${skin}-${theme}-${mode}`, [set]],
         [`skin-${skin}-${theme}-${mode}-focused`, [set, "document.querySelector('.card').click()"]],
-        [`skin-${skin}-${theme}-${mode}-dialog`, [set, "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"]]
+        [`skin-${skin}-${theme}-${mode}-dialog`, [set, "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()"]]
       ]
     })
   ),
@@ -70,9 +70,9 @@ const SCENARIOS = {
   shot_focused: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "document.querySelector('.card').click()"],
   shot_diff: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "[...document.querySelectorAll('.links a')].find(a => /Diff/.test(a.textContent)).click()"],
   shot_worklog: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Worked on/.test(b.textContent)).click()"],
-  shot_appearance: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'spaceship', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"],
-  appearance_bottom: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium' })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()", "document.querySelector('.appbody').scrollTop = 99999"],
-  appearance2: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'candy', mode: 'light', density: 'small', tileFont: 'medium', termFont: 'medium' })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"],
+  shot_appearance: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'spaceship', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', background: { path: null, dim: 'medium' }, tileOpacity: 1 })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()"],
+  appearance_bottom: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium' })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()", "document.querySelector('.appbody').scrollTop = 99999"],
+  appearance2: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'candy', mode: 'light', density: 'small', tileFont: 'medium', termFont: 'medium' })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()"],
   todos: ["[...document.querySelectorAll('.links a')].find(a => /to-do/.test(a.textContent)).click()"],
   procs: ["[...document.querySelectorAll('.links a')].find(a => /running/.test(a.textContent)).click()"],
   worklog_ticket: ["[...document.querySelectorAll('.titlebar button')].find(b => /Worked on/.test(b.textContent)).click()", "[...document.querySelectorAll('.ticketbtn')].find(b => /no ticket/.test(b.textContent)).click()"],

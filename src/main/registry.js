@@ -633,7 +633,7 @@ class Registry extends EventEmitter {
   /**
    * The ticket a session is on, from its branch (feature/EXC-207-…) or its name.
    * Linked only once a base URL is known — learned from any ticket URL pasted
-   * into a prompt, or set in Appearance. A ticket set by hand in "Worked on"
+   * into a prompt, or set in Settings. A ticket set by hand in "Worked on"
    * wins. Read-only: a link, nothing else.
    */
   ticketFor(session) {

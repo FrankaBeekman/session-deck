@@ -64,5 +64,6 @@ contextBridge.exposeInMainWorld('deck', {
   checkForUpdate: async () => {}, downloadUpdate: async () => {}, installUpdate: async () => {},
   onUpdate: () => () => {},
   onUpdateOpen: () => () => {},
+  onSettingsOpen: () => () => {},
   onData: () => () => {}
 })

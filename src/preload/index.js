@@ -52,6 +52,11 @@ contextBridge.exposeInMainWorld('deck', {
     ipcRenderer.on('deck:update', h)
     return () => ipcRenderer.removeListener('deck:update', h)
   },
+  onSettingsOpen: (cb) => {
+    const h = () => cb()
+    ipcRenderer.on('deck:settings-open', h)
+    return () => ipcRenderer.removeListener('deck:settings-open', h)
+  },
   onUpdateOpen: (cb) => {
     const h = () => cb()
     ipcRenderer.on('deck:update-open', h)
