@@ -11,9 +11,9 @@ announce itself.
 | | |
 |---|---|
 | ![A focused session](docs/screenshots/focused-session.png) | ![The diff view](docs/screenshots/diff.png) |
-| ![Hours worked](docs/screenshots/worked-on.png) | ![Appearance settings](docs/screenshots/appearance.png) |
-
-![A theme with a background image](docs/screenshots/background.png)
+| ![Hours worked, by ticket](docs/screenshots/worked-on.png) | ![A session summary](docs/screenshots/summary.png) |
+| ![The Cyberdeck skin](docs/screenshots/skin-cyberdeck.png) | ![The HUD skin](docs/screenshots/skin-hud.png) |
+| ![Settings](docs/screenshots/settings.png) | ![A theme with a background image](docs/screenshots/background.png) |
 
 *Rendered from `npm run preview` with example data — no real projects or tickets.*
 
