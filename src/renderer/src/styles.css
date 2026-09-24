@@ -889,6 +889,7 @@ body {
 .swatch i { width: 7px; height: 14px; display: block; }
 .appticket { flex-direction: column; align-items: stretch; gap: 8px; }
 .appticketfield { display: flex; gap: 8px; }
+.appupdate { margin-left: 0; }
 .appticketfield .filter { flex: 1; margin: 0; }
 
 /* ---------- background image ---------- */

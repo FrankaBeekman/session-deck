@@ -247,6 +247,12 @@ export default function App() {
             settings={settings}
             onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
             onClose={() => setAppearanceOpen(false)}
+            version={update.current}
+            onCheckUpdates={() => {
+              setAppearanceOpen(false)
+              setUpdateOpen(true)
+              window.deck.checkForUpdate()
+            }}
           />
         )}
         {linksSession && (

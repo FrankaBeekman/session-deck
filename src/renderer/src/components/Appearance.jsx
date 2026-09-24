@@ -54,8 +54,8 @@ function Segmented({ value, onChange, options, name }) {
   )
 }
 
-/** Theme, sizes, and where ticket links point. */
-export default function Appearance({ settings, onChange, onClose }) {
+/** Theme, sizes, where ticket links point, and a way to check for updates. */
+export default function Appearance({ settings, onChange, onClose, version, onCheckUpdates }) {
   const [ticketBase, setTicketBase] = useState('')
   const [saved, setSaved] = useState(false)
   const [backgrounds, setBackgrounds] = useState({ dir: null, images: [] })
@@ -220,6 +220,12 @@ export default function Appearance({ settings, onChange, onClose }) {
               </button>
             </div>
           </form>
+
+          <Row label="Updates" hint={version ? `this is Session Deck ${version}` : 'Session Deck'}>
+            <button className="closeb appupdate" type="button" onClick={onCheckUpdates}>
+              Check for updates
+            </button>
+          </Row>
         </div>
       </div>
     </div>
