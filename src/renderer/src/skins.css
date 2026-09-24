@@ -51,15 +51,30 @@
 
 :root[data-skin='cyberdeck'] { --step: 10px; }
 
-/* Content clear of the steps: the right of the top edge and the left of the
-   bottom edge sit lower (higher) than the rest. */
-[data-skin='cyberdeck'] .card .dismiss { top: 15px; right: 12px; }
-[data-skin='cyberdeck'] .cfoot { padding-bottom: 16px; }
-[data-skin='cyberdeck'] .card.alert .alertbar { padding-bottom: 16px; }
-[data-skin='cyberdeck'] :is(.picker, .focused, .diffwin) > .fhead { padding-top: 18px; }
-[data-skin='cyberdeck'] .ffoot { padding-bottom: 18px; }
+/* Room around the frame. The lines sit at the edge (the outline), 4.5px in on
+   tiles and 6px in on dialogs (the traced bezel), and the steps lower the
+   right of the top edge and raise the left of the bottom edge by the step
+   height. Padding clears all of that by at least 7px, so no line runs through
+   text or a button:
+     tile:   step 10 + trace 4.5 + gap 7.5  = 22px top/bottom, trace + gap = 18px sides
+     dialog: step 14 + trace 6   + gap 8    = 28px top/bottom, 22px sides */
+[data-skin='cyberdeck'] .card .chead { padding: 22px 18px 10px; }
+[data-skin='cyberdeck'] .card .term { margin-inline: 14px; }
+[data-skin='cyberdeck'] .card .cfoot { padding: 11px 18px 22px; }
+/* On a blocked tile the question bar is the bottom, so it takes the room. */
+[data-skin='cyberdeck'] .card.alert .cfoot { padding-bottom: 11px; }
+[data-skin='cyberdeck'] .card.alert .alertbar { padding: 12px 18px 22px; }
+[data-skin='cyberdeck'] .card .dismiss { top: 18px; right: 16px; }
+
+[data-skin='cyberdeck'] :is(.picker, .focused, .diffwin) > .fhead { padding: 28px 22px 12px; }
+[data-skin='cyberdeck'] .ffoot { padding: 12px 22px 28px; }
 /* A strip below the content, so a scrolling list stops above the step. */
-[data-skin='cyberdeck'] :is(.picker, .diffwin) { padding-bottom: 14px; }
+[data-skin='cyberdeck'] :is(.picker, .diffwin) { padding-bottom: 22px; }
+/* The focused window: the terminal's own step separates it from the header,
+   so the straight dividers above it — which ignored the step — go. */
+[data-skin='cyberdeck'] .focused > :is(.fhead, .alertbar--top) { border-bottom: 0; }
+[data-skin='cyberdeck'] .focused > .alertbar--top { padding-inline: 22px; }
+[data-skin='cyberdeck'] .focused .fterm { margin-inline: 8px; }
 
 /* The screens: the same stepped outline as their panel, and faint scanlines
    on the tiles' — a small CRT set into the chassis. */
@@ -126,8 +141,20 @@
 [data-skin='hud'] .card:hover { --frame: var(--accent); }
 [data-skin='hud'] .card.alert { --frame: var(--need); }
 
+/* Room around the pieces: brackets and their 45° step reach ~6px in on
+   tiles and ~8px on dialogs, the corner squares 5px, the ticks 7px up. */
+[data-skin='hud'] .card .chead { padding: 15px 16px 9px; }
+[data-skin='hud'] .card .term { margin-inline: 12px; }
+[data-skin='hud'] .card .cfoot { padding: 10px 16px 15px; }
+[data-skin='hud'] .card.alert .cfoot { padding-bottom: 10px; }
+[data-skin='hud'] .card.alert .alertbar { padding: 11px 16px 15px; }
+[data-skin='hud'] .card .dismiss { top: 10px; right: 12px; }
+[data-skin='hud'] :is(.picker, .focused, .diffwin) > .fhead { padding: 18px 20px 12px; }
+[data-skin='hud'] .ffoot { padding: 12px 20px 16px; }
+/* The side pieces sit beside the terminal, not on it. */
+[data-skin='hud'] .focused .fterm { margin-inline: 12px; }
 /* A strip for the ticks along the bottom, clear of scrolling content. */
-[data-skin='hud'] :is(.picker, .diffwin) { padding-bottom: 10px; }
+[data-skin='hud'] :is(.picker, .diffwin) { padding-bottom: 14px; }
 
 [data-skin='hud'] :is(.term, .fterm) { border-radius: 0; }
 [data-skin='hud'] .term { border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); }
