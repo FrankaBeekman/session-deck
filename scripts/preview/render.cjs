@@ -74,6 +74,7 @@ const SCENARIOS = {
   appearance2: ["localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'candy', mode: 'light', density: 'small', tileFont: 'medium', termFont: 'medium' })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Appearance/.test(b.textContent)).click()"],
   todos: ["[...document.querySelectorAll('.links a')].find(a => /to-do/.test(a.textContent)).click()"],
   procs: ["[...document.querySelectorAll('.links a')].find(a => /running/.test(a.textContent)).click()"],
+  worklog_ticket: ["[...document.querySelectorAll('.titlebar button')].find(b => /Worked on/.test(b.textContent)).click()", "[...document.querySelectorAll('.ticketbtn')].find(b => /no ticket/.test(b.textContent)).click()"],
   worklog: ["[...document.querySelectorAll('.titlebar button')].find(b => /Worked on/.test(b.textContent)).click()"],
   tall: ["document.querySelector('[data-density=\"tall\"]').click()"],
   closed: ["[...document.querySelectorAll('.card')].find(c => c.classList.contains('closed')).click()"]

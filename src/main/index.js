@@ -152,7 +152,9 @@ app.whenReady().then(() => {
       message: 'Another Session Deck has the status port.',
       detail:
         'This window can still launch and drive sessions, but status pills and ' +
-        'notifications will go to the other instance. Quit it, then reopen this one.',
+        'notifications will go to the other instance. Both also save to the same ' +
+        'store, so an older copy can overwrite what this one saves — ticket ' +
+        'changes, summaries. Quit it, then reopen this one.',
       buttons: ['OK']
     })
   })

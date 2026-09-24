@@ -818,6 +818,12 @@ body {
 .workhead { display: flex; align-items: center; gap: 8px; }
 .ticket { font-family: var(--f-mono); font-size: .7rem; font-weight: 600; padding: 1px 7px; border-radius: 3px; background: var(--accent-soft); color: var(--accent); }
 .ticket--none { background: var(--idle-bg); color: var(--idle); font-weight: 400; }
+/* The group's ticket is also its edit control. */
+.ticketbtn { border: 0; font-family: var(--f-mono); cursor: pointer; }
+.ticketbtn span { opacity: .55; font-weight: 400; margin-left: 2px; }
+.ticketbtn:hover span, .ticketbtn[aria-expanded="true"] span { opacity: 1; }
+.ticketbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.workhead + .ticketform { margin: 8px 0 2px; }
 .workproject { font-size: .8rem; color: var(--ink-2); }
 .workhours { font-family: var(--f-mono); font-size: .84rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .worksessions { list-style: none; margin: 5px 0 0; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 3px; }

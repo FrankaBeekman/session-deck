@@ -14,16 +14,23 @@ function label(day) {
 }
 
 /**
- * Set a session's ticket by hand. Empty clears it back to the detected one.
- * Escape cancels here rather than closing the whole panel.
+ * Set the ticket for one session, or for every session in a group, by hand.
+ * It opens on the current ticket so it can be edited as well as added. Saving
+ * empty, or "Use …", goes back to the detected one. Escape cancels here rather
+ * than closing the whole panel.
  */
-function TicketForm({ row, onDone }) {
-  const [draft, setDraft] = useState(row.edited ? row.ticket : '')
+function TicketForm({ keys, current, detected, edited, label, onDone }) {
+  const [draft, setDraft] = useState(current ?? '')
   const [error, setError] = useState(null)
 
   const save = async (value) => {
-    if (await window.deck.setTicket(row.key, value)) onDone(true)
-    else setError('Use a ticket key like EXC-207.')
+    for (const key of keys) {
+      if (!(await window.deck.setTicket(key, value))) {
+        setError('Use a ticket key like EXC-207.')
+        return
+      }
+    }
+    onDone(true)
   }
 
   return (
@@ -37,11 +44,11 @@ function TicketForm({ row, onDone }) {
       <input
         className="filter ticketinput"
         autoFocus
+        onFocus={(e) => e.target.select()}
         value={draft}
-        placeholder={row.detected ?? 'EXC-207'}
-        aria-label={`Ticket for ${row.name ?? 'this session'}`}
+        placeholder="EXC-207"
+        aria-label={label}
         aria-invalid={Boolean(error)}
-        aria-describedby={error ? `ticketerr-${row.key}` : undefined}
         onChange={(e) => {
           setDraft(e.target.value)
           setError(null)
@@ -55,16 +62,16 @@ function TicketForm({ row, onDone }) {
       <button className="newbtn" type="submit">
         Save
       </button>
-      {row.edited && (
+      {edited && (
         <button className="closeb" type="button" onClick={() => save('')} title="Forget the ticket set by hand">
-          Use {row.detected ?? 'no ticket'}
+          Use {detected ?? 'no ticket'}
         </button>
       )}
       <button className="closeb" type="button" onClick={() => onDone(false)}>
         Cancel
       </button>
       {error && (
-        <span className="formerror ticketerror" id={`ticketerr-${row.key}`} role="alert">
+        <span className="formerror ticketerror" role="alert">
           {error}
         </span>
       )}
@@ -81,7 +88,8 @@ export default function WorkLogPanel({ onClose }) {
   const [index, setIndex] = useState(0)
   const [data, setData] = useState(null)
   const [copied, setCopied] = useState(false)
-  const [editing, setEditing] = useState(null) // a row key
+  // What is being edited: `group:<key>` for a whole group, or a session row's key.
+  const [editing, setEditing] = useState(null)
 
   useEffect(() => {
     window.deck.worklogDays().then(setDays)
@@ -170,11 +178,29 @@ export default function WorkLogPanel({ onClose }) {
               {groups.map((g) => (
                 <li key={g.key}>
                   <div className="workhead">
-                    <span className={`ticket ${g.ticket ? '' : 'ticket--none'}`}>{g.ticket ?? 'no ticket'}</span>
+                    <button
+                      type="button"
+                      className={`ticket ticketbtn ${g.ticket ? '' : 'ticket--none'}`}
+                      aria-expanded={editing === `group:${g.key}`}
+                      title={g.ticket ? 'Change the ticket for these sessions' : 'Add a ticket for these sessions'}
+                      onClick={() => setEditing(editing === `group:${g.key}` ? null : `group:${g.key}`)}
+                    >
+                      {g.ticket ?? 'no ticket'} <span aria-hidden="true">✎</span>
+                    </button>
                     <span className="workproject">{g.project}</span>
                     <span className="spacer" />
                     <span className="workhours">{quarterHours(g.minutes)}h</span>
                   </div>
+                  {editing === `group:${g.key}` && (
+                    <TicketForm
+                      keys={g.rows.map((r) => r.key)}
+                      current={g.ticket}
+                      detected={g.rows[0].detected}
+                      edited={g.rows.some((r) => r.edited)}
+                      label={`Ticket for ${g.rows.length === 1 ? 'this session' : `these ${g.rows.length} sessions`} in ${g.project}`}
+                      onDone={doneEditing}
+                    />
+                  )}
                   <ul className="worksessions">
                     {g.rows.map((r) => (
                       <li key={r.key}>
@@ -187,13 +213,22 @@ export default function WorkLogPanel({ onClose }) {
                             aria-label={`${r.ticket ? 'Change' : 'Add'} the ticket for ${r.name ?? 'this session'}`}
                             onClick={() => setEditing(editing === r.key ? null : r.key)}
                           >
-                            {r.edited ? '✎ set by hand' : r.ticket ? '✎ ticket' : '+ ticket'}
+                            {r.edited ? '✎ set by hand' : '✎ this session'}
                           </button>
                           <span className="worktime">
                             {clockTime(r.first)}–{clockTime(r.last)} <s>•</s> {r.minutes}m
                           </span>
                         </div>
-                        {editing === r.key && <TicketForm row={r} onDone={doneEditing} />}
+                        {editing === r.key && (
+                          <TicketForm
+                            keys={[r.key]}
+                            current={r.ticket}
+                            detected={r.detected}
+                            edited={r.edited}
+                            label={`Ticket for ${r.name ?? 'this session'}`}
+                            onDone={doneEditing}
+                          />
+                        )}
                       </li>
                     ))}
                   </ul>
