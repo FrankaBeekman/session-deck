@@ -12,6 +12,11 @@ const DIMS = [
   { key: 'strong', label: 'Strong' }
 ]
 
+const ON_OFF = [
+  { key: 'on', label: 'Show' },
+  { key: 'off', label: 'Hide' }
+]
+
 const MODES = [
   { key: 'system', label: 'Auto' },
   { key: 'light', label: 'Light' },
@@ -54,7 +59,7 @@ function Segmented({ value, onChange, options, name }) {
   )
 }
 
-/** Settings: theme and skin, sizes, where ticket links point, and updates. */
+/** Settings: theme and skin, sizes, Worked on times, where ticket links point, and updates. */
 export default function Settings({ settings, onChange, onClose, version, onCheckUpdates }) {
   const [ticketBase, setTicketBase] = useState('')
   const [saved, setSaved] = useState(false)
@@ -199,6 +204,15 @@ export default function Settings({ settings, onChange, onClose, version, onCheck
 
           <Row label="Terminal text" hint="size in the focused session">
             <Segmented name="Terminal text size" value={settings.termFont} options={SIZES} onChange={(v) => onChange({ termFont: v })} />
+          </Row>
+
+          <Row label="Worked on times" hint="only the time a session was active — not testing or other work outside Claude">
+            <Segmented
+              name="Worked on times"
+              value={settings.worklogTimes ? 'on' : 'off'}
+              options={ON_OFF}
+              onChange={(v) => onChange({ worklogTimes: v === 'on' })}
+            />
           </Row>
 
           <form className="approw appticket" onSubmit={saveTicketBase}>

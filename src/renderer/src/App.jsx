@@ -30,7 +30,10 @@ const DEFAULTS = {
   tileFont: 'medium',
   termFont: 'medium',
   background: { path: null, dim: 'medium' },
-  tileOpacity: 1
+  tileOpacity: 1,
+  // Session time only — not testing, reviews or work outside Claude — so it is
+  // opt-in rather than shown as if it were the time spent on a ticket.
+  worklogTimes: false
 }
 
 const prefersDark = () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
@@ -242,7 +245,7 @@ export default function App() {
         {diffSession && <DiffPanel session={diffSession} onClose={() => setDiffUid(null)} />}
         {todoSession && <ChecklistPanel session={todoSession} onClose={() => setTodoUid(null)} />}
         {procSession && <ProcessesPanel session={procSession} onClose={() => setProcUid(null)} />}
-        {worklogOpen && <WorkLogPanel onClose={() => setWorklogOpen(false)} />}
+        {worklogOpen && <WorkLogPanel showTimes={settings.worklogTimes} onClose={() => setWorklogOpen(false)} />}
         {updateOpen && <UpdatePanel state={update} running={sessions.filter((s) => s.attached).length} onClose={() => setUpdateOpen(false)} />}
         {settingsOpen && (
           <Settings

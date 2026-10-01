@@ -80,10 +80,12 @@ function TicketForm({ keys, current, detected, edited, label, onDone }) {
 }
 
 /**
- * A local reference for logging hours: active time per session per day, grouped
- * by ticket. Nothing here is sent anywhere — copy it into the time tracker.
+ * A local reference for logging hours: what was worked on per day, grouped by
+ * ticket. Nothing here is sent anywhere — copy it into the time tracker.
+ * `showTimes` adds each session's active time; it is off by default, as it
+ * leaves out testing and everything else done outside a session.
  */
-export default function WorkLogPanel({ onClose }) {
+export default function WorkLogPanel({ showTimes, onClose }) {
   const [days, setDays] = useState([])
   const [index, setIndex] = useState(0)
   const [data, setData] = useState(null)
@@ -124,7 +126,8 @@ export default function WorkLogPanel({ onClose }) {
   const copy = async () => {
     const lines = groups.map((g) => {
       const what = g.rows.map((r) => r.name).filter(Boolean).join('; ')
-      return `${g.ticket ?? '(no ticket)'}\t${g.project}\t${quarterHours(g.minutes)}h\t${what}`
+      const hours = showTimes ? `\t${quarterHours(g.minutes)}h` : ''
+      return `${g.ticket ?? '(no ticket)'}\t${g.project}${hours}\t${what}`
     })
     try {
       await navigator.clipboard.writeText(`${label(day)} (${day})\n${lines.join('\n')}`)
@@ -164,7 +167,7 @@ export default function WorkLogPanel({ onClose }) {
                 →
               </button>
               <span className="spacer" />
-              {data && (
+              {data && showTimes && (
                 <span className="daytotal">
                   {quarterHours(data.totalMinutes)}h <span>({data.totalMinutes}m)</span>
                 </span>
@@ -189,7 +192,7 @@ export default function WorkLogPanel({ onClose }) {
                     </button>
                     <span className="workproject">{g.project}</span>
                     <span className="spacer" />
-                    <span className="workhours">{quarterHours(g.minutes)}h</span>
+                    {showTimes && <span className="workhours">{quarterHours(g.minutes)}h</span>}
                   </div>
                   {editing === `group:${g.key}` && (
                     <TicketForm
@@ -215,9 +218,11 @@ export default function WorkLogPanel({ onClose }) {
                           >
                             {r.edited ? '✎ set by hand' : '✎ this session'}
                           </button>
-                          <span className="worktime">
-                            {clockTime(r.first)}–{clockTime(r.last)} <s>•</s> {r.minutes}m
-                          </span>
+                          {showTimes && (
+                            <span className="worktime">
+                              {clockTime(r.first)}–{clockTime(r.last)} <s>•</s> {r.minutes}m
+                            </span>
+                          )}
                         </div>
                         {editing === r.key && (
                           <TicketForm

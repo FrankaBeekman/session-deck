@@ -343,9 +343,11 @@ exits right after, leaving nothing to walk up from.
 **Checklist.** Things the user must do once Claude is done, per project: added by
 Claude through `add_user_todo`, or by hand.
 
-**Worked on.** Active time per session per day, grouped by ticket (parsed from
-prompts, names and branches), for logging hours by hand. A silence over 10
-minutes ends a block. A wrong or missing ticket can be set by hand per session
+**Worked on.** What was worked on per day, grouped by ticket (parsed from
+prompts, names and branches), for logging hours by hand. Each session's active
+time is hidden by default — it leaves out testing, reviews and changes made
+outside Claude, so it reads as less than the time spent on a ticket. *Settings →
+Worked on times* shows it again. A silence over 10 minutes ends a block. A wrong or missing ticket can be set by hand per session
 (`ticketOverrides` in `store.json`); it applies on every day that session ran
 and on its tile, and clearing it returns to the detected one. Stored as compact blocks in `store.json`, built once from
 the hook log's history. **Local only** — nothing is sent anywhere.
@@ -581,6 +583,14 @@ node node_modules/electron/install.js
 it as a spawn `cwd` fails with `posix_spawnp failed`. `local.js` expands it, and
 `launcher.js` falls back to `$HOME` if a path still does not resolve -- the
 ssh-entry script cd's into the site itself, so `cwd` only has to be valid.
+
+**Local only writes a site's ssh-entry script on its first "Open site shell".**
+A new site has none, and used to be left out of the site list. On macOS
+`local.js` now builds an equivalent script from `sites.json` — the site's PHP
+and MySQL from `lightning-services`, WP-CLI and Composer from `Local.app`,
+`PHPRC`/`MYSQL_HOME` from `run/<siteID>` — into `~/.session-deck/site-shells/`,
+leaving Local's own folder untouched. Local's script wins once it exists. If
+the services can't be found the site is still listed and starts in a plain shell.
 
 **`posix_spawnp failed` on every launch.** npm extraction drops the execute bit
 from node-pty's `prebuilds/*/spawn-helper`. node-pty spawns that helper via

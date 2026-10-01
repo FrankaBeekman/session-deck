@@ -1,3 +1,7 @@
+import { posix } from 'path'
+
+const { join } = posix
+
 /**
  * The launcher script text, kept free of Electron and node-pty imports so it can
  * be exercised directly — it decides where a session starts and in which shell.
@@ -47,4 +51,31 @@ export function windowsLauncherScript({ entryScript, claudeBin, sessionId, resum
   ]
     .filter((line) => line !== null)
     .join('\r\n')
+}
+
+/**
+ * A stand-in for Local's ssh-entry script, for sites whose shell was never
+ * opened in Local — Local only writes the script on the first "Open site shell".
+ * Mirrors Local's own: the site's PHP/MySQL/WP-CLI/Composer on PATH, PHPRC and
+ * MYSQL_HOME, a cd into the site, and the `exec $SHELL` the launcher relies on.
+ */
+export function siteShellScript({ name, runDir, binDirs, toolsDir, publicDir, imageMagickDir }) {
+  return [
+    '#!/bin/bash',
+    `export MYSQL_HOME=${shq(join(runDir, 'conf', 'mysql'))}`,
+    `export PHPRC=${shq(join(runDir, 'conf', 'php'))}`,
+    `export WP_CLI_CONFIG_PATH=${shq(join(toolsDir, 'wp-cli', 'config.yaml'))}`,
+    'export WP_CLI_DISABLE_AUTO_CHECK_UPDATE=1',
+    ...binDirs.map((dir) => `export PATH=${shq(dir)}:"$PATH"`),
+    `export PATH=${shq(join(toolsDir, 'wp-cli', 'posix'))}:"$PATH"`,
+    `export PATH=${shq(join(toolsDir, 'composer', 'posix'))}:"$PATH"`,
+    imageMagickDir ? `export MAGICK_CODER_MODULE_PATH=${shq(imageMagickDir)}` : null,
+    `echo ${shq(`Local site shell: ${name}`)}`,
+    `cd ${shq(publicDir)}`,
+    'unset NODE_ENV',
+    'exec $SHELL',
+    ''
+  ]
+    .filter((line) => line !== null)
+    .join('\n')
 }
