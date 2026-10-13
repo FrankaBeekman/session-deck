@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
-import { ipcError } from '../lib/format.js'
+import { ago, ipcError } from '../lib/format.js'
 import SkinFrame from './SkinFrame.jsx'
 
 const TABS = [
   { key: 'site', label: 'Local site' },
-  { key: 'directory', label: 'Directory' }
+  { key: 'directory', label: 'Directory' },
+  { key: 'resume', label: 'Resume' }
 ]
+
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
 
 function readTab() {
   try {
@@ -15,11 +18,13 @@ function readTab() {
   }
 }
 
-/** Start a session in a Local site, or in any directory. */
-export default function NewSession({ onPickSite, onPickDirectory, onClose }) {
+/** Start a session in a Local site or any directory, or resume a conversation. */
+export default function NewSession({ onPickSite, onPickDirectory, onResume, onClose }) {
   const [tab, setTab] = useState(readTab)
   const [projects, setProjects] = useState([])
   const [recent, setRecent] = useState([])
+  const [conversations, setConversations] = useState(null)
+  const [resumeInput, setResumeInput] = useState('')
   const [filter, setFilter] = useState('')
   const [error, setError] = useState(null)
 
@@ -27,6 +32,11 @@ export default function NewSession({ onPickSite, onPickDirectory, onClose }) {
     window.deck.projects().then(setProjects)
     window.deck.recentDirectories().then(setRecent)
   }, [])
+
+  // Reads transcript heads from disk, so only when the tab is actually opened.
+  useEffect(() => {
+    if (tab === 'resume' && conversations === null) window.deck.conversations().then(setConversations)
+  }, [tab, conversations])
 
   useEffect(() => {
     try {
@@ -50,6 +60,18 @@ export default function NewSession({ onPickSite, onPickDirectory, onClose }) {
       const dir = await window.deck.chooseDirectory()
       if (dir) await onPickDirectory(dir)
     })
+
+  // The field takes an id or the whole `claude --resume <id>` line; anything
+  // else filters the list.
+  const pastedId = resumeInput.match(UUID)?.[0] ?? null
+  const needle = pastedId ? '' : resumeInput.trim().toLowerCase()
+  const shownConversations = (conversations ?? []).filter((c) =>
+    `${c.name ?? ''} ${c.display} ${c.site ?? ''} ${c.id}`.toLowerCase().includes(needle)
+  )
+  const resumePasted = (e) => {
+    e.preventDefault()
+    if (pastedId) start(() => onResume(pastedId))
+  }
 
   const shown = projects.filter((p) => `${p.name} ${p.domain}`.toLowerCase().includes(filter.toLowerCase()))
 
@@ -111,6 +133,46 @@ export default function NewSession({ onPickSite, onPickDirectory, onClose }) {
                 </li>
               ))}
               {shown.length === 0 && <li className="none">No sites match.</li>}
+            </ul>
+          </div>
+        ) : tab === 'resume' ? (
+          <div className="tabpanel" id="panel-resume" role="tabpanel" aria-labelledby="tab-resume">
+            <form className="resumeform" onSubmit={resumePasted}>
+              <input
+                id="resume-input"
+                className="filter"
+                autoFocus
+                placeholder="Paste a session id or claude --resume …, or filter"
+                aria-label="Session id to resume, or filter conversations"
+                aria-describedby="resume-hint"
+                value={resumeInput}
+                onChange={(e) => setResumeInput(e.target.value)}
+              />
+              <button className="newbtn" type="submit" disabled={!pastedId}>
+                Resume
+              </button>
+            </form>
+            <p className="resumehint" id="resume-hint">
+              Claude prints the id when it stops. The session reopens in the folder it ran in.
+            </p>
+            <h4 className="listlabel">Recent conversations</h4>
+            <ul className="plist">
+              {conversations === null && <li className="none">Loading…</li>}
+              {shownConversations.map((c) => (
+                <li key={c.id}>
+                  <button type="button" onClick={() => start(() => onResume(c.id))} title={`${c.cwd}\n${c.id}`}>
+                    <span className="sname">{c.name ?? 'Untitled conversation'}</span>
+                    <span className="pname">
+                      <span className="dirpath">{c.display}</span> <s>•</s> {ago(c.at)}
+                      {c.site && <span className="badge">Local · {c.site}</span>}
+                      {c.open && <span className="badge">Open</span>}
+                    </span>
+                  </button>
+                </li>
+              ))}
+              {conversations !== null && shownConversations.length === 0 && (
+                <li className="none">No conversations match.</li>
+              )}
             </ul>
           </div>
         ) : (

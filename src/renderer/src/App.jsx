@@ -155,6 +155,12 @@ export default function App() {
     setFocusedUid(uid)
   }, [])
 
+  const resumeConversation = useCallback(async (id) => {
+    const uid = await window.deck.resumeConversation(id)
+    setPicking(false)
+    setFocusedUid(uid)
+  }, [])
+
   const byUid = (uid) => sessions.find((s) => s.uid === uid) ?? null
   const focused = byUid(focusedUid)
   const linksSession = links && byUid(links.uid)
@@ -229,7 +235,7 @@ export default function App() {
         )}
 
         {picking && (
-          <NewSession onPickSite={launch} onPickDirectory={launchDirectory} onClose={() => setPicking(false)} />
+          <NewSession onPickSite={launch} onPickDirectory={launchDirectory} onResume={resumeConversation} onClose={() => setPicking(false)} />
         )}
         {focused && (
           <FocusedSession

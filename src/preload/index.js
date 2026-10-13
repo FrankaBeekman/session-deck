@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('deck', {
   launchDirectory: (dir) => ipcRenderer.invoke('deck:launch-directory', dir),
   recentDirectories: () => ipcRenderer.invoke('deck:recent-directories'),
   resume: (sessionId) => ipcRenderer.invoke('deck:resume', sessionId),
+  conversations: () => ipcRenderer.invoke('deck:conversations'),
+  resumeConversation: (input) => ipcRenderer.invoke('deck:resume-conversation', input),
   buffer: (sessionId) => ipcRenderer.invoke('deck:buffer', sessionId),
   gitRepos: (sessionId) => ipcRenderer.invoke('deck:git-repos', sessionId),
   gitDiff: (root, path, group) => ipcRenderer.invoke('deck:git-diff', { root, path, group }),
