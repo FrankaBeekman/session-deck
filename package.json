@@ -13,7 +13,7 @@
     "fix-pty": "node scripts/fix-node-pty.mjs",
     "dist": "electron-vite build && electron-builder --mac --publish never",
     "pack": "electron-vite build && electron-builder --mac dir",
-    "status": "curl -s -H \"X-Deck-Token: $(cat ~/.session-deck/token)\" http://127.0.0.1:47823/sessions",
+    "status": "curl -s -H \"@$HOME/.session-deck/token-header\" http://127.0.0.1:47823/sessions",
     "preview": "electron scripts/preview/render.cjs",
     "install-integration": "node scripts/install-integration.mjs",
     "dist:win": "electron-vite build && electron-builder --win --publish never",
