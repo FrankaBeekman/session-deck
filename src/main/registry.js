@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto'
 import { launchSession, COLS, ROWS } from './launcher.js'
 import { getProject, projectForDirectory } from './local.js'
 import { load, save, flush } from './store.js'
-import { firstUserMessage, scanTitles, transcriptDigest } from './transcript.js'
+import { firstUserMessage, scanTitles, transcriptDigest, transcriptCwd } from './transcript.js'
 import { primaryRepo } from './git.js'
 import { snapshot, claudeAncestor, claudeShells, appFor, focusApp, killTree } from './proc.js'
 import * as worklog from './worklog.js'
@@ -304,6 +304,78 @@ class Registry extends EventEmitter {
       this.sessions.set(s.id, s)
       throw err
     }
+  }
+
+  /**
+   * Resume any conversation by id — the one Claude prints on exit
+   * (`claude --resume <id>`), or one picked from `conversations()`. A tile the
+   * deck already has is focused or reopened rather than duplicated.
+   */
+  resumeConversation(input) {
+    const id = String(input ?? '').match(UUID)?.[0]?.toLowerCase()
+    if (!id) throw new Error('That is not a session id. Paste the id, or the whole `claude --resume …` line.')
+
+    const existing = this.resolve(id)
+    if (existing?.pty) return existing
+    if (existing?.external && existing.status !== 'closed') {
+      throw new Error(`That session is still running${existing.appName ? ` in ${existing.appName}` : ' outside the deck'}.`)
+    }
+    if (existing && !existing.external && this.canReopen(existing)) return this.reopen(existing.id)
+
+    const transcript = locateTranscript(id)
+    if (!transcript) throw new Error(`No conversation found with id ${id}.`)
+    const cwd = transcriptCwd(transcript)
+    if (!cwd || !existsSync(cwd)) throw new Error(`The folder this conversation ran in no longer exists${cwd ? `: ${cwd}` : ''}.`)
+
+    if (existing) this.sessions.delete(existing.id)
+    return this.launch(projectForDirectory(cwd), {
+      resumeId: id,
+      name: existing?.name ?? null,
+      nameSource: existing?.nameSource ?? null
+    })
+  }
+
+  /**
+   * Recent conversations on this machine, newest first: what `claude --resume`
+   * offers, across every project. Only the head of each transcript is read.
+   */
+  conversations(limit = 60) {
+    const root = projectsRoot()
+    const files = []
+    try {
+      for (const dir of readdirSync(root)) {
+        let names = []
+        try {
+          names = readdirSync(join(root, dir))
+        } catch {
+          continue
+        }
+        for (const name of names) {
+          if (!name.endsWith('.jsonl') || !UUID.test(name)) continue
+          const path = join(root, dir, name)
+          try {
+            files.push({ id: name.slice(0, -6), path, at: statSync(path).mtimeMs })
+          } catch {}
+        }
+      }
+    } catch {
+      return []
+    }
+    return files
+      .sort((a, b) => b.at - a.at)
+      .slice(0, limit)
+      .map(({ id, path, at }) => {
+        const cwd = transcriptCwd(path)
+        const s = this.get(id)
+        return {
+          id,
+          at,
+          cwd,
+          name: this.store.names[id] ?? s?.name ?? firstUserMessage(path),
+          open: Boolean(s?.pty || (s?.external && s.status !== 'closed'))
+        }
+      })
+      .filter((c) => c.cwd)
   }
 
   canReopen(s) {
@@ -907,12 +979,19 @@ class Registry extends EventEmitter {
   }
 }
 
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+
+/** Where Claude Code keeps transcripts, one folder per project directory. */
+function projectsRoot() {
+  return join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), 'projects')
+}
+
 /**
  * Find a conversation's transcript by session id. Records from before the path
  * was stored have none, and "unknown" must not be read as "gone".
  */
 function locateTranscript(id) {
-  const root = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), 'projects')
+  const root = projectsRoot()
   try {
     for (const dir of readdirSync(root)) {
       const candidate = join(root, dir, `${id}.jsonl`)

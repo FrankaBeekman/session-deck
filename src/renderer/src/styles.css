@@ -738,6 +738,10 @@ body {
   padding: 16px 15px 12px;
 }
 .choosedir p { margin: 0; font-size: .78rem; color: var(--muted); max-width: 52ch; }
+.resumeform { display: flex; align-items: center; gap: 8px; margin: 12px 15px 0; }
+.resumeform .filter { flex: 1; min-width: 0; margin: 0; }
+.resumeform .newbtn:disabled { opacity: .45; cursor: default; }
+.resumehint { margin: 6px 15px 10px; font-size: .78rem; color: var(--muted); }
 .formerror { color: #c0392b !important; }
 .launchfail { margin: 10px 15px 0; font-size: .78rem; }
 .launcherror { border-top: 0; border-bottom: 1px solid var(--need-edge); }

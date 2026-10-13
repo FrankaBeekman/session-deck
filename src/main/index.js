@@ -230,6 +230,18 @@ app.whenReady().then(() => {
     })
   )
 
+  ipcMain.handle('deck:conversations', () =>
+    registry.conversations().map((c) => {
+      const project = projectForDirectory(c.cwd)
+      return { ...c, display: tildify(c.cwd), site: project.id ? project.name : null }
+    })
+  )
+
+  ipcMain.handle('deck:resume-conversation', (_e, input) => {
+    const s = registry.resumeConversation(input)
+    return s.deckId ?? s.id
+  })
+
   ipcMain.handle('deck:launch', (_e, projectId) => {
     const project = getProject(projectId)
     if (!project) throw new Error(`Unknown project: ${projectId}`)

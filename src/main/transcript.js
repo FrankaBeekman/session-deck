@@ -42,6 +42,27 @@ export function firstUserMessage(path) {
   return null
 }
 
+/**
+ * The directory a conversation ran in. Claude files a transcript under that
+ * directory and `--resume` only finds it from there. Every message line carries
+ * `cwd`, so the first one near the top is enough.
+ */
+export function transcriptCwd(path) {
+  if (!path) return null
+  let fd
+  try {
+    fd = openSync(path, 'r')
+    const buf = Buffer.alloc(64 * 1024)
+    const bytes = readSync(fd, buf, 0, buf.length, 0)
+    const m = buf.subarray(0, bytes).toString('utf8').match(/"cwd":("(?:[^"\\]|\\.)*")/)
+    return m ? JSON.parse(m[1]) : null
+  } catch {
+    return null
+  } finally {
+    if (fd !== undefined) try { closeSync(fd) } catch {}
+  }
+}
+
 const CHUNK = 1024 * 1024
 
 /**
