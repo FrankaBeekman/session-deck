@@ -395,6 +395,15 @@ Claude, which the deck reads incrementally from the transcript's `custom-title`
 entries; between those two the latest wins. Deck renames are stored in
 `store.json`. They do not rename the session inside Claude.
 
+## Dropping files on the terminal
+
+Drag an image — or any file — from Finder onto a focused session's terminal and
+its path is typed at the cursor, escaped the way a terminal would, several
+files separated by spaces. Claude Code turns an image path into an attachment.
+The path goes in as a paste, so nothing is submitted until you press Enter.
+Only files on disk work: an image dragged straight out of a web page has no
+path and is ignored.
+
 ## Settings
 
 One panel, from the title bar or *Session Deck → Settings…* (⌘,): **theme**,
