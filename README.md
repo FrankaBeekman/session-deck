@@ -20,7 +20,7 @@ announce itself.
 ## Setup
 
 ```sh
-npm install                               # postinstall fixes node-pty's spawn-helper
+npm install                               # postinstall fixes node-pty's spawn-helper and downloads Electron
 npm run install-integration               # dry run — shows what it would change
 npm run install-integration -- --write    # apply
 npm run dev
@@ -571,8 +571,11 @@ it needs to. Fixing it means reinstalling Node for arm64, which affects every
 other project on the machine — so it is worth deciding deliberately rather than
 discovering later.
 
-**If `npm run dev` says `Error: Electron uninstall`,** Electron's binary
-download was skipped (this happens on in-place version upgrades). Recover with:
+**If `npm run dev` says `Error: Electron uninstall`,** Electron's binary has
+not been downloaded. Electron no longer does that in an install script of its
+own, and electron-vite does not trigger the download, so this project's
+`postinstall` runs it. If that was skipped (`npm install --ignore-scripts`),
+recover with:
 
 ```sh
 node node_modules/electron/install.js
