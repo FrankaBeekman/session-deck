@@ -44,6 +44,11 @@ contextBridge.exposeInMainWorld('deck', {
   checkForUpdate: () => ipcRenderer.invoke('deck:update-check'),
   downloadUpdate: () => ipcRenderer.invoke('deck:update-download'),
   installUpdate: () => ipcRenderer.invoke('deck:update-install'),
+  mediaState: () => ipcRenderer.invoke('deck:media-state'),
+  setMediaEnabled: (on) => ipcRenderer.send('deck:media-enabled', on),
+  mediaCommand: (verb) => ipcRenderer.send('deck:media-command', verb),
+  mediaRetry: () => ipcRenderer.send('deck:media-retry'),
+  openAutomationSettings: () => ipcRenderer.send('deck:open-automation-settings'),
 
   onSessions: (cb) => {
     const h = (_e, sessions) => cb(sessions)
@@ -54,6 +59,11 @@ contextBridge.exposeInMainWorld('deck', {
     const h = (_e, state) => cb(state)
     ipcRenderer.on('deck:update', h)
     return () => ipcRenderer.removeListener('deck:update', h)
+  },
+  onMedia: (cb) => {
+    const h = (_e, state) => cb(state)
+    ipcRenderer.on('deck:media', h)
+    return () => ipcRenderer.removeListener('deck:media', h)
   },
   onSettingsOpen: (cb) => {
     const h = () => cb()

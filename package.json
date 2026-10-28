@@ -71,7 +71,10 @@
       "icon": "build/icon.icns",
       "identity": "-",
       "hardenedRuntime": false,
-      "darkModeSupport": true
+      "darkModeSupport": true,
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Session Deck shows what Spotify or Apple Music is playing and lets you control playback."
+      }
     },
     "extraResources": [
       {

@@ -10,6 +10,7 @@ import { IS_MAC, IS_WIN, isInside } from './platform.js'
 import { listBackgrounds, chooseBackground, registerScheme, serveBackgrounds, urlFor, bundledDir } from './backgrounds.js'
 import { reposForSession, fileDiff } from './git.js'
 import { updater } from './updater.js'
+import { media } from './media.js'
 import { isHttpUrl } from './urls.js'
 
 // Must run before `ready`, or the menu bar and About panel say "Electron".
@@ -123,10 +124,17 @@ function createWindow() {
 
   win.once('ready-to-show', () => win.show())
 
+  // The now playing widget polls only while someone can see it.
+  win.on('hide', () => media.setVisible(false))
+  win.on('minimize', () => media.setVisible(false))
+  win.on('show', () => media.setVisible(true))
+  win.on('restore', () => media.setVisible(true))
+
   // Without this, `win` stays a live reference to a destroyed object and every
   // later send throws "Object has been destroyed".
   win.on('closed', () => {
     win = null
+    media.setVisible(false)
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -219,6 +227,17 @@ app.whenReady().then(() => {
   ipcMain.handle('deck:update-check', () => updater.check())
   ipcMain.handle('deck:update-download', () => updater.download())
   ipcMain.handle('deck:update-install', () => updater.install())
+
+  media.on('change', (state) => send('deck:media', state))
+  ipcMain.handle('deck:media-state', () => media.state)
+  ipcMain.on('deck:media-enabled', (_e, on) => media.setEnabled(on === true))
+  ipcMain.on('deck:media-command', (_e, verb) => media.command(verb))
+  ipcMain.on('deck:media-retry', () => media.retry())
+  // Not through deck:open-external: this is the one non-http(s) URL the deck
+  // opens, and it is fixed here rather than passed in.
+  ipcMain.on('deck:open-automation-settings', () => {
+    if (IS_MAC) shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Automation')
+  })
 
   ipcMain.handle('deck:projects', () => listProjects())
   ipcMain.handle('deck:sessions', () => registry.serialize())

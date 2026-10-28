@@ -217,6 +217,17 @@ export default function Settings({ settings, onChange, onClose, version, onCheck
             />
           </Row>
 
+          {window.deck.platform === 'darwin' && (
+            <Row label="Now playing" hint="Spotify or Apple Music in the title bar; macOS asks permission per app">
+              <Segmented
+                name="Now playing"
+                value={settings.nowPlaying ? 'on' : 'off'}
+                options={ON_OFF}
+                onChange={(v) => onChange({ nowPlaying: v === 'on' })}
+              />
+            </Row>
+          )}
+
           <form className="approw appticket" onSubmit={saveTicketBase}>
             <div className="applabel">
               Ticket links

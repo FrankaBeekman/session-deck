@@ -125,6 +125,10 @@
   background-repeat: no-repeat;
 }
 [data-skin='cyberdeck'] .closeb:hover { --edge: var(--muted); }
+[data-skin='cyberdeck'] :is(.npcover, .npbtn) {
+  border-radius: 0;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+}
 [data-skin='cyberdeck'] :is(.newbtn, .closeb):focus-visible {
   outline: none;
   box-shadow: inset 0 0 0 2px var(--accent);
@@ -194,3 +198,4 @@
 }
 
 [data-skin='hud'] :is(.newbtn, .closeb, .filter, .density, .wincount) { border-radius: 0; }
+[data-skin='hud'] :is(.npcover, .npbtn) { border-radius: 0; }
