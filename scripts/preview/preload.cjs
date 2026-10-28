@@ -3,7 +3,30 @@ const f = require('./fixtures.cjs')
 
 let sessions = f.sessions
 const listeners = []
+
+// The now playing widget's states; a scenario picks one through localStorage.
+const cover =
+  'data:image/svg+xml,' +
+  encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><defs><linearGradient id="g" x2="1" y2="1"><stop offset="0" stop-color="#e0559b"/><stop offset="1" stop-color="#3b5bdb"/></linearGradient></defs><rect width="8" height="8" fill="url(#g)"/></svg>')
+// A plain stand-in for a player's icon; the real one comes from the app bundle.
+const appIcon =
+  'data:image/svg+xml,' +
+  encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect x="1" y="1" width="14" height="14" rx="3.5" fill="#000"/><circle cx="8" cy="8" r="5" fill="#1db954"/></svg>')
+const MEDIA = {
+  ok: { status: 'ok', source: { id: 'spotify', label: 'Spotify', icon: appIcon }, playing: true, track: { name: 'A song title that is long enough to be cut off', artist: 'Example Artist', album: 'Example Album' }, artwork: cover, denied: [] },
+  paused: { status: 'ok', source: { id: 'music', label: 'Apple Music', icon: null }, playing: false, track: { name: 'Radio stream', artist: '', album: '' }, artwork: null, denied: [] },
+  denied: { status: 'denied', source: null, playing: false, track: null, artwork: null, denied: [{ id: 'spotify', label: 'Spotify' }] }
+}
+const media = () => {
+  try {
+    return MEDIA[localStorage.getItem('preview.media')] ?? { status: 'off' }
+  } catch {
+    return { status: 'off' }
+  }
+}
+
 contextBridge.exposeInMainWorld('deck', {
+  platform: 'darwin',
   projects: async () => [
     { id: 'a', name: 'example-corporate', domain: 'example-corporate.test', phpVersion: '8.3.23' },
     { id: 'b', name: 'example-foundation', domain: 'example-foundation.test', phpVersion: '8.2.27' },
@@ -64,6 +87,9 @@ contextBridge.exposeInMainWorld('deck', {
   updateState: async () => ({ status: 'none', current: '0.2.0' }),
   checkForUpdate: async () => {}, downloadUpdate: async () => {}, installUpdate: async () => {},
   onUpdate: () => () => {},
+  mediaState: async () => media(),
+  setMediaEnabled: () => {}, mediaCommand: () => {}, mediaRetry: () => {}, openAutomationSettings: () => {},
+  onMedia: () => () => {},
   onUpdateOpen: () => () => {},
   onSettingsOpen: () => () => {},
   onData: () => () => {}

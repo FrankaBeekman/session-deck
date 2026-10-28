@@ -80,6 +80,23 @@ const SCENARIOS = {
   procs: ["[...document.querySelectorAll('.links a')].find(a => /running/.test(a.textContent)).click()"],
   worklog_ticket: ["[...document.querySelectorAll('.titlebar button')].find(b => /Worked on/.test(b.textContent)).click()", "[...document.querySelectorAll('.ticketbtn')].find(b => /no ticket/.test(b.textContent)).click()"],
   worklog: ["[...document.querySelectorAll('.titlebar button')].find(b => /Worked on/.test(b.textContent)).click()"],
+  // The now playing widget: each state, both skins with frames, a light theme,
+  // and the Settings row. Run `nowplaying-narrow` at 800 wide to see it shrink.
+  ...Object.fromEntries(
+    [
+      ['nowplaying', 'ok', "{ theme: 'default', mode: 'dark' }"],
+      ['nowplaying-paused', 'paused', "{ theme: 'default', mode: 'dark' }"],
+      ['nowplaying-denied', 'denied', "{ theme: 'default', mode: 'dark' }"],
+      ['nowplaying-light', 'ok', "{ theme: 'candy', mode: 'light' }"],
+      ['nowplaying-cyberdeck', 'ok', "{ skin: 'cyberdeck', theme: 'cyberpunk', mode: 'dark' }"],
+      ['nowplaying-hud', 'ok', "{ skin: 'hud', theme: 'spaceship', mode: 'dark' }"],
+      ['nowplaying-narrow', 'ok', "{ theme: 'default', mode: 'dark' }"]
+    ].map(([name, state, look]) => [
+      name,
+      [`localStorage.setItem('preview.media', '${state}'); localStorage.setItem('deck.appearance', JSON.stringify(Object.assign({ density: 'small', tileFont: 'medium', termFont: 'medium', nowPlaying: true }, ${look}))); location.reload()`]
+    ])
+  ),
+  'nowplaying-settings': ["localStorage.removeItem('preview.media'); localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium' })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()", "document.querySelector('.appbody').scrollTop = 99999"],
   tall: ["document.querySelector('[data-density=\"tall\"]').click()"],
   closed: ["[...document.querySelectorAll('.card')].find(c => c.classList.contains('closed')).click()"]
 }

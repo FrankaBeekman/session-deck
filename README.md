@@ -522,6 +522,41 @@ then runs one `claude -p` on Haiku with:
 `--bare` would skip hooks too, but only accepts an API key, not a subscription
 login.
 
+## Now playing
+
+*Settings → Now playing* puts Spotify or Apple Music in the title bar: cover,
+title and artist, with previous, play/pause and next. **macOS only for now, and
+off by default** — turning it on is what lets macOS ask for permission at all.
+While it is off, nothing runs.
+
+It talks to the desktop apps through AppleScript (`src/main/media.js`), so
+there is no account, API key or Premium requirement. Every 10s a `pgrep` checks
+whether either player is running; only then does `osascript` read its state,
+every 3s, and not while the window is hidden or minimized. Each script sits
+inside `if application "…" is running`: a bare `tell` would start the app.
+
+- **Both open:** the one that is playing wins; between equals, the one that
+  changed last. Commands go to the one shown, and its icon — a Quick Look
+  thumbnail of the running app's bundle; `app.getFileIcon` only returns the
+  generic app icon for a `.app` — sits before the cover. Without an icon, its
+  name follows the track.
+- **Centred** on the title bar, in a three-column grid. Exact centring needs
+  room for both sides at the wider one's width, so below 900px it centres
+  between them without text, and below 800px it is not shown.
+- **Permission** is per app (*Privacy & Security → Automation*). A denied app
+  stops being polled and the widget offers *Allow* and *Try again*; the other
+  app keeps working. Under `npm run dev` the prompt names Electron.
+- **Covers** never come from the renderer, whose CSP stays as it was. Main
+  fetches Spotify's from `i.scdn.co` only, and has Music write its artwork to a
+  private temp file, then hands either over as a `data:` URL. Streams without
+  artwork get a placeholder.
+- The renderer can send only `playpause`, `next` and `previous`; nothing it
+  sends ends up in a script (`media-core.js`, which is free of Electron imports
+  so it can be checked with plain node).
+
+`NSAppleEventsUsageDescription` in the build's `extendInfo` is required: without
+it, macOS refuses the Apple Events without asking.
+
 ## Security
 
 The deck is a local developer tool: it starts shells, reads repositories and

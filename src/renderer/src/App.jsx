@@ -10,6 +10,7 @@ import ProcessesPanel from './components/ProcessesPanel.jsx'
 import WorkLogPanel from './components/WorkLogPanel.jsx'
 import UpdatePanel from './components/UpdatePanel.jsx'
 import Settings, { bgUrl } from './components/Settings.jsx'
+import NowPlaying from './components/NowPlaying.jsx'
 import { applyTheme } from './themes.js'
 import { SkinContext } from './components/SkinFrame.jsx'
 import { ipcError } from './lib/format.js'
@@ -33,7 +34,10 @@ const DEFAULTS = {
   tileOpacity: 1,
   // Session time only — not testing, reviews or work outside Claude — so it is
   // opt-in rather than shown as if it were the time spent on a ticket.
-  worklogTimes: false
+  worklogTimes: false,
+  // Spotify / Apple Music in the title bar. Opt-in: turning it on is what lets
+  // macOS ask for Automation permission at all.
+  nowPlaying: false
 }
 
 const prefersDark = () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
@@ -103,6 +107,10 @@ export default function App() {
     root.style.setProperty('--bg-dim', bg.path ? (DIM[bg.dim] ?? DIM.medium) : '100%')
     root.style.setProperty('--tile-alpha', `${Math.round((settings.tileOpacity ?? 1) * 100)}%`)
   }, [settings])
+
+  useEffect(() => {
+    window.deck.setMediaEnabled(settings.nowPlaying === true)
+  }, [settings.nowPlaying])
 
   // Follow the OS while the mode is "system".
   useEffect(() => {
@@ -180,25 +188,31 @@ export default function App() {
     <SkinContext.Provider value={settings.skin ?? 'plain'}>
       <div className="app">
         <header className="titlebar">
-          <span className="wintitle">Session Deck</span>
-          <span className="wincount">
-            {running} running{waiting > 0 && ` · ${waiting} waiting`}
-          </span>
-          <span className="spacer" />
-          {['available', 'downloading', 'ready'].includes(update.status) && (
-            <button className="closeb titlebtn updatebtn" type="button" onClick={() => setUpdateOpen(true)}>
-              {update.status === 'ready' ? 'Restart to update' : `Update to ${update.latest}`}
+          <div className="tbside">
+            <span className="wintitle">Session Deck</span>
+            <span className="wincount">
+              {running} running{waiting > 0 && ` · ${waiting} waiting`}
+            </span>
+          </div>
+          <div className="tbcenter">
+            <NowPlaying />
+          </div>
+          <div className="tbside tbside--end">
+            {['available', 'downloading', 'ready'].includes(update.status) && (
+              <button className="closeb titlebtn updatebtn" type="button" onClick={() => setUpdateOpen(true)}>
+                {update.status === 'ready' ? 'Restart to update' : `Update to ${update.latest}`}
+              </button>
+            )}
+            <button className="closeb titlebtn" type="button" onClick={() => setWorklogOpen(true)}>
+              Worked on
             </button>
-          )}
-          <button className="closeb titlebtn" type="button" onClick={() => setWorklogOpen(true)}>
-            Worked on
-          </button>
-          <button className="closeb titlebtn" type="button" onClick={() => setSettingsOpen(true)} title="Theme, skin, text sizes, ticket links and updates">
-            Settings
-          </button>
-          <button className="newbtn" type="button" onClick={() => setPicking(true)}>
-            + New session
-          </button>
+            <button className="closeb titlebtn" type="button" onClick={() => setSettingsOpen(true)} title="Theme, skin, text sizes, ticket links and updates">
+              Settings
+            </button>
+            <button className="newbtn" type="button" onClick={() => setPicking(true)}>
+              + New session
+            </button>
+          </div>
         </header>
 
         {launchError && (
