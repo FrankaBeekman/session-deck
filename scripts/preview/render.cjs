@@ -96,6 +96,10 @@ const SCENARIOS = {
       [`localStorage.setItem('preview.media', '${state}'); localStorage.setItem('deck.appearance', JSON.stringify(Object.assign({ density: 'small', tileFont: 'medium', termFont: 'medium', nowPlaying: true }, ${look}))); location.reload()`]
     ])
   ),
+  // Over an open session, and with a saved size taller than the window: the
+  // widget stays sharp and usable, and the dialog stays below the title bar.
+  'nowplaying-focused': ["localStorage.setItem('preview.media', 'ok'); localStorage.setItem('deck.focusedSize', JSON.stringify({ width: 1400, height: 2000 })); localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', nowPlaying: true })); location.reload()", "document.querySelector('.card').click()"],
+  'nowplaying-diff': ["localStorage.setItem('preview.media', 'ok'); localStorage.setItem('deck.appearance', JSON.stringify({ skin: 'cyberdeck', theme: 'cyberpunk', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', nowPlaying: true })); location.reload()", "[...document.querySelectorAll('.links a')].find(a => /Diff/.test(a.textContent)).click()"],
   'nowplaying-settings': ["localStorage.removeItem('preview.media'); localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium' })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()", "document.querySelector('.appbody').scrollTop = 99999"],
   tall: ["document.querySelector('[data-density=\"tall\"]').click()"],
   closed: ["[...document.querySelectorAll('.card')].find(c => c.classList.contains('closed')).click()"]

@@ -543,6 +543,10 @@ inside `if application "…" is running`: a bare `tell` would start the app.
 - **Centred** on the title bar, in a three-column grid. Exact centring needs
   room for both sides at the wider one's width, so below 900px it centres
   between them without text, and below 800px it is not shown.
+- **Usable with a session open.** The widget sits above the scrim that every
+  dialog lays over the window, and dialogs live in the area below the title
+  bar: they can never grow into it, not by resizing nor with a size remembered
+  from a larger window, so nothing ever covers the widget.
 - **Permission** is per app (*Privacy & Security → Automation*). A denied app
   stops being polled and the widget offers *Allow* and *Try again*; the other
   app keeps working. Under `npm run dev` the prompt names Electron.
