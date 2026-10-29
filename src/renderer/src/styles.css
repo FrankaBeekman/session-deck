@@ -4,6 +4,7 @@
    theme: "needs you" has to read at a glance even in neon. */
 :root {
   color-scheme: light dark;
+  --titlebar-h: 40px;
   --app: #f5f3f4;
   --chrome: #e6e1e4;
   --card: #fffdfd;
@@ -92,7 +93,7 @@ body {
 .titlebar {
   background: var(--chrome);
   border-bottom: 1px solid var(--line);
-  height: 40px;
+  height: var(--titlebar-h);
   flex: none;
   /* Three columns so the middle one is centred on the bar itself, not on the
      space left between the sides. `1fr` never shrinks below its content, so a
@@ -108,6 +109,9 @@ body {
 .tbside { display: flex; align-items: center; gap: 14px; white-space: nowrap; }
 .tbside--end { grid-column: 3; justify-content: flex-end; }
 .tbcenter { display: flex; justify-content: center; min-width: 0; }
+/* Above the overlays, so now playing stays usable while a session or a panel
+   is open. Dialogs never reach up here (.overlay), so it covers none of them. */
+.tbcenter { position: relative; z-index: 11; }
 .wintitle { font-size: .8rem; font-weight: 600; color: var(--ink-2); }
 .wincount {
   font-family: var(--f-mono);
@@ -266,16 +270,22 @@ body {
 }
 
 /* ---------- overlays ---------- */
+/* The scrim covers the whole window, title bar included, but dialogs sit in
+   the area below the title bar and can never grow into it: the one cell is
+   that area exactly, and nothing in it may be taller or wider — not even a
+   remembered size from a larger window. */
 .overlay {
   position: fixed;
   inset: 0;
   background: color-mix(in srgb, var(--app) 82%, transparent);
   backdrop-filter: blur(3px);
   display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center;
-  padding: 20px;
+  padding: calc(var(--titlebar-h) + 20px) 20px 20px;
   z-index: 10;
 }
+.overlay > * { max-height: 100%; max-width: 100%; }
 .focused, .picker {
   width: 100%;
   background: var(--card);
@@ -289,14 +299,14 @@ body {
 /* Large by default and drag-resizable from the corner; the terminal refits. */
 .focused {
   width: min(1180px, 100%);
-  height: min(820px, calc(100vh - 40px));
+  height: min(820px, 100%);
   min-width: min(560px, 100%);
-  min-height: 360px;
+  min-height: min(360px, 100%);
   max-width: 100%;
-  max-height: calc(100vh - 40px);
+  max-height: 100%;
   resize: both;
 }
-.picker { max-width: 460px; max-height: 70vh; }
+.picker { max-width: 460px; max-height: min(70vh, 100%); }
 
 .fhead {
   padding: 12px 15px;
