@@ -5,6 +5,7 @@ import NewSession from './components/NewSession.jsx'
 import LinksPanel from './components/LinksPanel.jsx'
 import SummaryPanel from './components/SummaryPanel.jsx'
 import DiffPanel from './components/DiffPanel.jsx'
+import ComposerPanel from './components/ComposerPanel.jsx'
 import ChecklistPanel from './components/ChecklistPanel.jsx'
 import ProcessesPanel from './components/ProcessesPanel.jsx'
 import WorkLogPanel from './components/WorkLogPanel.jsx'
@@ -37,7 +38,9 @@ const DEFAULTS = {
   worklogTimes: false,
   // Spotify / Apple Music in the title bar. Opt-in: turning it on is what lets
   // macOS ask for Automation permission at all.
-  nowPlaying: false
+  nowPlaying: false,
+  // Lock updates per environment branch, in a dialog per session. Opt-in.
+  composerUpdates: false
 }
 
 const prefersDark = () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
@@ -63,6 +66,7 @@ export default function App() {
   const [picking, setPicking] = useState(false)
   const [links, setLinks] = useState(null) // { uid, kind: 'pages' | 'prs' }
   const [diffUid, setDiffUid] = useState(null)
+  const [composerUid, setComposerUid] = useState(null)
   const [summaryUid, setSummaryUid] = useState(null)
   const [todoUid, setTodoUid] = useState(null)
   const [procUid, setProcUid] = useState(null)
@@ -129,6 +133,7 @@ export default function App() {
       if (links) return setLinks(null)
       if (summaryUid) return setSummaryUid(null)
       if (diffUid) return setDiffUid(null)
+      if (composerUid) return setComposerUid(null)
       if (todoUid) return setTodoUid(null)
       if (procUid) return setProcUid(null)
       if (updateOpen) return setUpdateOpen(false)
@@ -139,7 +144,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [links, summaryUid, diffUid, todoUid, procUid, updateOpen, worklogOpen, settingsOpen, picking])
+  }, [links, summaryUid, diffUid, composerUid, todoUid, procUid, updateOpen, worklogOpen, settingsOpen, picking])
 
   const reopen = useCallback(async (uid) => {
     try {
@@ -167,6 +172,7 @@ export default function App() {
   const focused = byUid(focusedUid)
   const linksSession = links && byUid(links.uid)
   const diffSession = byUid(diffUid)
+  const composerSession = settings.composerUpdates ? byUid(composerUid) : null
   const summarySession = byUid(summaryUid)
   const todoSession = byUid(todoUid)
   const procSession = byUid(procUid)
@@ -178,6 +184,7 @@ export default function App() {
     onShowPages: () => setLinks({ uid: s.uid, kind: 'pages' }),
     onShowPrs: () => setLinks({ uid: s.uid, kind: 'prs' }),
     onShowDiff: () => setDiffUid(s.uid),
+    onShowComposer: settings.composerUpdates ? () => setComposerUid(s.uid) : null,
     onShowSummary: () => setSummaryUid(s.uid),
     onShowTodos: () => setTodoUid(s.uid),
     onShowProcesses: () => setProcUid(s.uid),
@@ -257,6 +264,7 @@ export default function App() {
         {/* After the focused view, so a panel opened from it stacks on top. */}
         {summarySession && <SummaryPanel session={summarySession} onClose={() => setSummaryUid(null)} />}
         {diffSession && <DiffPanel session={diffSession} onClose={() => setDiffUid(null)} />}
+        {composerSession && <ComposerPanel session={composerSession} onClose={() => setComposerUid(null)} />}
         {todoSession && <ChecklistPanel session={todoSession} onClose={() => setTodoUid(null)} />}
         {procSession && <ProcessesPanel session={procSession} onClose={() => setProcUid(null)} />}
         {worklogOpen && <WorkLogPanel showTimes={settings.worklogTimes} onClose={() => setWorklogOpen(false)} />}

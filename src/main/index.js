@@ -9,6 +9,9 @@ import { installBridgeCopy } from './bridge-copy.js'
 import { IS_MAC, IS_WIN, isInside } from './platform.js'
 import { listBackgrounds, chooseBackground, registerScheme, serveBackgrounds, urlFor, bundledDir } from './backgrounds.js'
 import { reposForSession, fileDiff } from './git.js'
+import { composerState, composerOutdated, findProjectRoot, git as gitRun } from './composer.js'
+import { environmentsFor } from './composer-core.js'
+import * as composerOps from './composer-update.js'
 import { updater } from './updater.js'
 import { media } from './media.js'
 import { isHttpUrl } from './urls.js'
@@ -310,6 +313,97 @@ app.whenReady().then(() => {
   ipcMain.handle('deck:git-diff', (_e, { root, path, group }) =>
     shownRepos.has(root) ? fileDiff(root, path, { group }) : { text: '', truncated: false, error: 'Unknown repository' }
   )
+
+  // Composer updates. The renderer names a session and a branch, never a path:
+  // the project repo is worked out here, from the session.
+  ipcMain.handle('deck:composer-state', async (_e, uid) => {
+    const ctx = registry.composerContext(uid)
+    if (!ctx) return { ok: false, error: 'Session not found.' }
+    const root = findProjectRoot(ctx.startDirs)
+    const remote = root ? await composerOps.remoteOf(root) : null
+    const state = await composerState({
+      ...ctx,
+      ticketKey: ctx.ticket,
+      pending: root && remote ? await composerOps.pendingBranches({ root, remote }) : [],
+      outdatedFor: (root, branch) => registry.outdatedFor(root, branch)
+    })
+    const settings = registry.workflowSettings()
+    return {
+      ...state,
+      workflow: { id: ctx.workflow.id, name: ctx.workflow.name, source: ctx.workflow.source },
+      workflows: settings.workflows.map((w) => ({ id: w.id, name: w.name })),
+      defaultWorkflowId: settings.defaultId
+    }
+  })
+  ipcMain.handle('deck:composer-outdated', async (_e, { uid, branch }) => {
+    const ctx = registry.composerContext(uid)
+    const root = ctx && findProjectRoot(ctx.startDirs)
+    if (!root) return { ok: false, error: 'Project repository not found.' }
+    const result = await composerOutdated({ root, branch, projectId: ctx.projectId })
+    if (result.ok) registry.rememberOutdated(root, branch, result)
+    return result
+  })
+  /**
+   * Every write goes through here: the project repo comes from the session,
+   * and the branch must be one of that project's environments. The renderer
+   * cannot name a path, a remote, or any other branch.
+   */
+  const composerTarget = async (uid, branch) => {
+    const ctx = registry.composerContext(uid)
+    const root = ctx && findProjectRoot(ctx.startDirs)
+    if (!root) throw new Error('Project repository not found.')
+    const remote = await composerOps.remoteOf(root)
+    if (!remote) throw new Error('The project repository has no remote to push to.')
+    const current = (await gitRun(root, ['rev-parse', '--abbrev-ref', 'HEAD'])).out.trim()
+    // An environment of this project — or a branch with deck work still pending,
+    // so switching branches never strands an unpushed commit.
+    const allowed =
+      environmentsFor(ctx.workflow, current).some((e) => e.branch === branch) ||
+      (await composerOps.pendingBranches({ root, remote })).includes(branch)
+    if (!allowed) throw new Error(`${branch} is not one of this project's environments.`)
+    return { ctx, root, remote, branch }
+  }
+  composerOps.onOpChange((state) => send('deck:composer-op', state))
+  ipcMain.handle('deck:composer-op', async (_e, { uid, branch }) => {
+    const t = await composerTarget(uid, branch)
+    return composerOps.opState(t)
+  })
+  ipcMain.handle('deck:composer-update', async (_e, { uid, branch, packages }) => {
+    const t = await composerTarget(uid, branch)
+    return composerOps.startUpdate({
+      ...t,
+      packages: Array.isArray(packages) ? packages.map(String).slice(0, 100) : [],
+      ticket: t.ctx.ticket,
+      projectId: t.ctx.projectId
+    })
+  })
+  ipcMain.handle('deck:composer-commit', async (_e, { uid, branch, message }) =>
+    composerOps.commit({ ...(await composerTarget(uid, branch)), message: String(message ?? '') })
+  )
+  for (const action of ['push', 'undoCommit', 'discard', 'retry']) {
+    ipcMain.handle(`deck:composer-${action}`, async (_e, { uid, branch }) => composerOps[action](await composerTarget(uid, branch)))
+  }
+  ipcMain.handle('deck:composer-diff', async (_e, { uid, branch }) => composerOps.diff(await composerTarget(uid, branch)))
+  ipcMain.handle('deck:composer-prompt', async (_e, { uid, branch }) => composerOps.promptFor(await composerTarget(uid, branch)))
+  // Typed into the session's terminal as a bracketed paste: Claude Code takes it
+  // as pasted text, so its newlines do not send it. You read it, then press Enter.
+  ipcMain.handle('deck:composer-paste', async (_e, { uid, branch }) => {
+    const prompt = composerOps.promptFor(await composerTarget(uid, branch))
+    const session = registry.resolve(uid)
+    if (!prompt || !session?.pty) return false
+    // Step output is cleaned as it is logged; this is the last line of defence
+    // before a terminal: nothing in the paste may end it early.
+    const safe = prompt.replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '')
+    registry.write(uid, `\x1b[200~${safe}\x1b[201~`)
+    return true
+  })
+
+  ipcMain.handle('deck:workflow', () => registry.workflowSettings())
+  ipcMain.handle('deck:set-workflow', (_e, settings) => registry.setWorkflowSettings(settings))
+  ipcMain.handle('deck:set-project-workflow', (_e, { uid, id }) => {
+    const ctx = registry.composerContext(uid)
+    return ctx ? registry.setProjectWorkflow(ctx.projectKey, id || null) : null
+  })
 
   ipcMain.handle('deck:buffer', (_e, sessionId) => registry.replayFor(sessionId))
   ipcMain.on('deck:write', (_e, { sessionId, data }) => registry.write(sessionId, data))

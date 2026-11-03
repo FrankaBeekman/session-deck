@@ -31,7 +31,7 @@ const hasFiles = (e) => [...(e.dataTransfer?.types ?? [])].includes('Files')
  * terminal is open (resume fallback, /clear), and remounting would flicker and
  * drop scroll position.
  */
-export default function FocusedSession({ session, fontSize = 12.5, theme, onClose, onShowPages, onShowPrs, onShowDiff, onShowSummary, onReopen, onShowTodos, onShowProcesses }) {
+export default function FocusedSession({ session, fontSize = 12.5, theme, onClose, onShowPages, onShowPrs, onShowDiff, onShowComposer, onShowSummary, onReopen, onShowTodos, onShowProcesses }) {
   const hostRef = useRef(null)
   const termRef = useRef(null)
   const refitRef = useRef(null)
@@ -262,6 +262,7 @@ export default function FocusedSession({ session, fontSize = 12.5, theme, onClos
             onShowPages={onShowPages}
             onShowPrs={onShowPrs}
             onShowDiff={onShowDiff}
+            onShowComposer={onShowComposer}
             onShowSummary={onShowSummary}
             onReopen={onReopen}
             onShowTodos={onShowTodos}

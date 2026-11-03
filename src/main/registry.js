@@ -13,6 +13,7 @@ import * as worklog from './worklog.js'
 import { createReplay, append, replayText } from './replay.js'
 import { runSummary, SUMMARY_MODEL } from './summary.js'
 import { isHttpUrl } from './urls.js'
+import { normalizeWorkflowSettings, resolveWorkflow, allWorkflows } from './composer-core.js'
 
 const MAX_ACTIVITY = 14 // enough for the tallest tile density
 const WEEK = 7 * 24 * 60 * 60 * 1000
@@ -87,6 +88,8 @@ class Registry extends EventEmitter {
     this.store.ticketOverrides ??= {}
     this.store.summaries ??= {}
     this.store.backgrounds ??= []
+    this.store.workflow = normalizeWorkflowSettings(this.store.workflow)
+    this.store.composerOutdated ??= {} // project root -> branch -> { at, results }
     // Each origin gets one go at adoption; see adoptSavedBackground in index.js.
     if (typeof this.store.backgroundsAdopted !== 'object' || !this.store.backgroundsAdopted) {
       this.store.backgroundsAdopted = {}
@@ -688,6 +691,73 @@ class Registry extends EventEmitter {
 
   ticketBase() {
     return this.store.ticketBase ?? null
+  }
+
+  // ------------------------------------------------------------- composer
+
+  /** Workflow settings plus the presets, for the Settings editor. */
+  workflowSettings() {
+    // Overrides are keyed by Local's site id, which means nothing to a reader.
+    const projectNames = {}
+    for (const key of Object.keys(this.store.workflow.overrides)) {
+      const live = [...this.sessions.values()].find((s) => this.projectKey(s.project) === key)
+      projectNames[key] = live?.project?.name ?? getProject(key)?.name ?? key.split(/[\\/]/).filter(Boolean).pop() ?? key
+    }
+    return { ...this.store.workflow, workflows: allWorkflows(this.store.workflow), projectNames }
+  }
+
+  /** Replaces the stored settings; malformed parts are dropped, never saved. */
+  setWorkflowSettings(raw) {
+    this.store.workflow = normalizeWorkflowSettings(raw)
+    save(this.store)
+    return this.workflowSettings()
+  }
+
+  /** A project's own workflow, or back to the default with null. */
+  setProjectWorkflow(projectKey, id) {
+    const next = { ...this.store.workflow, overrides: { ...this.store.workflow.overrides } }
+    if (id) next.overrides[projectKey] = id
+    else delete next.overrides[projectKey]
+    return this.setWorkflowSettings(next)
+  }
+
+  /**
+   * What the Composer dialog needs from a session: where to look, and every
+   * file edited on this ticket in this project, by any session — the work for
+   * one ticket is often spread over several.
+   */
+  composerContext(id) {
+    const s = this.resolve(id)
+    if (!s) return null
+    const projectKey = this.projectKey(s.project)
+    const ticket = this.ticketFor(s)?.key ?? null
+    const touched = new Set(s.touched ?? [])
+    if (ticket) {
+      for (const other of this.sessions.values()) {
+        if (other === s || this.projectKey(other.project) !== projectKey) continue
+        if (this.ticketFor(other)?.key === ticket) for (const p of other.touched ?? []) touched.add(p)
+      }
+    }
+    const path = s.project?.path
+    return {
+      projectKey,
+      projectId: s.project?.id ?? null,
+      ticket,
+      touched: [...touched],
+      // The session's own folder first; a Local site's app/ as a fallback for
+      // a session that started somewhere outside the project repo.
+      startDirs: [s.cwd, s.launchDir, path && join(path, 'app'), path],
+      workflow: resolveWorkflow(this.store.workflow, projectKey)
+    }
+  }
+
+  outdatedFor(root, branch) {
+    return this.store.composerOutdated[root]?.[branch] ?? null
+  }
+
+  rememberOutdated(root, branch, result) {
+    ;(this.store.composerOutdated[root] ??= {})[branch] = { at: result.at, results: result.results }
+    save(this.store)
   }
 
   // ------------------------------------------------------------ backgrounds

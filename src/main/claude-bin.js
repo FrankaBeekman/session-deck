@@ -112,6 +112,30 @@ export function resolveClaudeBin() {
   ]))
 }
 
+let cachedComposer = null
+
+/**
+ * Composer outside a Local site. Null rather than a throw: the dialog works
+ * without it, only "Check for updates" needs it.
+ */
+export function resolveComposerBin() {
+  if (cachedComposer) return cachedComposer
+  try {
+    if (IS_WIN) {
+      const found = whereWindows('composer')
+      return found ? (cachedComposer = found) : null
+    }
+    return (cachedComposer = resolveUnix('composer', [
+      '/opt/homebrew/bin/composer',
+      '/usr/local/bin/composer',
+      join(homedir(), '.composer', 'vendor', 'bin', 'composer'),
+      join(homedir(), '.config', 'composer', 'vendor', 'bin', 'composer')
+    ]))
+  } catch {
+    return null
+  }
+}
+
 /** The MCP bridge runs under node, which a GUI process also cannot assume on PATH. */
 export function resolveNodeBin() {
   if (cachedNode) return cachedNode

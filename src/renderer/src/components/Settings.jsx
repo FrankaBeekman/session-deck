@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { THEMES, swatchFor } from '../themes.js'
 import { SKINS } from '../skins.js'
 import SkinFrame from './SkinFrame.jsx'
+import WorkflowSettings from './WorkflowSettings.jsx'
 
 export const bgUrl = (path) => `deckbg://img/${encodeURIComponent(path)}`
 
@@ -15,6 +16,11 @@ const DIMS = [
 const ON_OFF = [
   { key: 'on', label: 'Show' },
   { key: 'off', label: 'Hide' }
+]
+
+const ENABLED = [
+  { key: 'on', label: 'On' },
+  { key: 'off', label: 'Off' }
 ]
 
 const MODES = [
@@ -227,6 +233,16 @@ export default function Settings({ settings, onChange, onClose, version, onCheck
               />
             </Row>
           )}
+
+          <Row label="Composer updates" hint="per session: update composer.lock on each environment branch">
+            <Segmented
+              name="Composer updates"
+              value={settings.composerUpdates ? 'on' : 'off'}
+              options={ENABLED}
+              onChange={(v) => onChange({ composerUpdates: v === 'on' })}
+            />
+          </Row>
+          {settings.composerUpdates && <WorkflowSettings />}
 
           <form className="approw appticket" onSubmit={saveTicketBase}>
             <div className="applabel">

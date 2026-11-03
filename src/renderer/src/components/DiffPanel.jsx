@@ -9,7 +9,7 @@ const GROUPS = [
   { key: 'untracked', label: 'Untracked' }
 ]
 
-function DiffBody({ text, truncated }) {
+export function DiffBody({ text, truncated }) {
   return (
     <div className="diffbody">
       {text.split('\n').map((line, i) => {

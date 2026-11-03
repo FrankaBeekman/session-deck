@@ -79,6 +79,18 @@ contextBridge.exposeInMainWorld('deck', {
   buffer: async () => '\x1b[2m> add a department filter to the vacancy block\x1b[0m\r\n\r\n● Edit render.php\r\n',
   gitRepos: async () => f.repos,
   gitDiff: async () => ({ text: f.diff, truncated: false, error: null }),
+  composerState: async () => f.composer,
+  composerOutdated: async () => new Promise((r) => setTimeout(() => r({ ok: true, at: Date.now(), results: f.composerOutdated }), 300)),
+  workflow: async () => f.workflow,
+  composerOp: async (uid, branch) => {
+    const stage = localStorage.getItem('preview.composerOp')
+    return branch === 'develop' && f.composerOps[stage] ? f.composerOps[stage] : { root: f.composer.root, branch, stage: 'idle', steps: [], packages: [] }
+  },
+  onComposerOp: () => () => {},
+  composerPrompt: async () => 'prompt',
+  composerDiff: async () => ({ text: f.lockDiff, truncated: false }),
+  setWorkflow: async (s) => ({ ...f.workflow, ...s }),
+  setProjectWorkflow: async () => f.workflow,
   write: () => {}, close: () => {}, remove: () => {}, rename: () => {},
   forgetTestPage: () => {}, forgetPullRequest: () => {}, setTicket: async () => true,
   summary: async () => ({ summary: { text: f.summary, at: Date.now() - 12 * 60e3, size: 1 }, available: true, outdated: true, pending: false }),
