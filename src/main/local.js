@@ -81,6 +81,30 @@ function generatedEntryScript(id, site) {
   return path
 }
 
+/**
+ * The site's own PHP and Local's bundled Composer, for running Composer the way
+ * the site shell would — the project's PHP version, not whatever is on PATH.
+ * macOS only, where Local's install location is fixed; null elsewhere or when
+ * the site's PHP can't be found.
+ */
+export function localComposer(projectId) {
+  if (!IS_MAC || !projectId || !existsSync(SITES_JSON)) return null
+  const phar = join(LOCAL_TOOLS, 'composer', 'composer.phar')
+  if (!existsSync(phar)) return null
+  try {
+    const site = JSON.parse(readFileSync(SITES_JSON, 'utf8'))[projectId]
+    if (!site) return null
+    const phpService = serviceDir(Object.values(site.services ?? {}).find((s) => s.role === 'php'))
+    const phpDir = phpService && platformDir(phpService)
+    const php = phpDir && join(phpDir, 'bin', 'php')
+    if (!php || !existsSync(php)) return null
+    const phprc = join(LOCAL_DIR, 'run', projectId, 'conf', 'php')
+    return { php, phar, env: existsSync(phprc) ? { PHPRC: phprc } : {} }
+  } catch {
+    return null
+  }
+}
+
 /** Local's own script when it has written one, otherwise our stand-in. */
 function entryScriptFor(id, site) {
   const local = join(SSH_ENTRY, entryScriptName(id))

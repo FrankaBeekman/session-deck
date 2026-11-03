@@ -101,6 +101,28 @@ const SCENARIOS = {
   'nowplaying-focused': ["localStorage.setItem('preview.media', 'ok'); localStorage.setItem('deck.focusedSize', JSON.stringify({ width: 1400, height: 2000 })); localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', nowPlaying: true })); location.reload()", "document.querySelector('.card').click()"],
   'nowplaying-diff': ["localStorage.setItem('preview.media', 'ok'); localStorage.setItem('deck.appearance', JSON.stringify({ skin: 'cyberdeck', theme: 'cyberpunk', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium', nowPlaying: true })); location.reload()", "[...document.querySelectorAll('.links a')].find(a => /Diff/.test(a.textContent)).click()"],
   'nowplaying-settings': ["localStorage.removeItem('preview.media'); localStorage.setItem('deck.appearance', JSON.stringify({ theme: 'default', mode: 'dark', density: 'small', tileFont: 'medium', termFont: 'medium' })); location.reload()", "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()", "document.querySelector('.appbody').scrollTop = 99999"],
+  // Composer updates: the dialog (git-only, then after Check for updates) and its Settings.
+  ...(() => {
+    const on = (look, op = '') => `localStorage.setItem('preview.composerOp', '${op}'); localStorage.removeItem('deck.focusedSize'); localStorage.setItem('deck.appearance', JSON.stringify(Object.assign({ density: 'small', tileFont: 'medium', termFont: 'medium', composerUpdates: true }, ${look}))); location.reload()`
+    const open = ["document.querySelector('.card').click()", "[...document.querySelectorAll('.links a')].find(a => a.textContent.trim() === 'Composer').click()"]
+    const checked = "[...document.querySelectorAll('.cchecks button')].find(b => /Check for updates/.test(b.textContent)).click()"
+    return {
+      composer: [on("{ theme: 'default', mode: 'dark' }"), ...open],
+      'composer-checked': [on("{ theme: 'default', mode: 'dark' }"), ...open, checked],
+      'composer-staging': [on("{ theme: 'candy', mode: 'light' }"), ...open, "document.querySelectorAll('.ctabs button')[1].click()"],
+      'composer-hud': [on("{ skin: 'hud', theme: 'spaceship', mode: 'dark' }"), ...open, checked],
+      ...Object.fromEntries(['review', 'committed', 'failed', 'running'].map((stage) => [
+        `composer-op-${stage}`,
+        [on("{ theme: 'default', mode: 'dark' }", stage), ...open,
+         "[...document.querySelectorAll('.cfoot button')].find(b => /^Log/.test(b.textContent))?.click()"]
+      ])),
+      'composer-op-diff': [on("{ theme: 'default', mode: 'dark' }", 'review'), ...open, "[...document.querySelectorAll('.cfoot button')].find(b => /Show lock diff/.test(b.textContent)).click()"],
+      'composer-op-failed-light': [on("{ theme: 'candy', mode: 'light' }", 'failed'), ...open, "[...document.querySelectorAll('.cfoot button')].find(b => /^Log/.test(b.textContent))?.click()"],
+      'composer-settings': [on("{ theme: 'default', mode: 'dark' }"), "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()", "document.querySelector('.wfrow').scrollIntoView({ block: 'center' })"],
+      'composer-workflows': [on("{ theme: 'default', mode: 'dark' }"), "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()", "[...document.querySelectorAll('.wfrow button')].find(b => /Edit workflows/.test(b.textContent)).click()"],
+      'composer-workflows-new': [on("{ theme: 'candy', mode: 'light' }"), "[...document.querySelectorAll('.titlebar button')].find(b => /Settings/.test(b.textContent)).click()", "[...document.querySelectorAll('.wfrow button')].find(b => /Edit workflows/.test(b.textContent)).click()", "[...document.querySelectorAll('.wfhead button')].find(b => /New workflow/.test(b.textContent)).click()"]
+    }
+  })(),
   tall: ["document.querySelector('[data-density=\"tall\"]').click()"],
   closed: ["[...document.querySelectorAll('.card')].find(c => c.classList.contains('closed')).click()"]
 }

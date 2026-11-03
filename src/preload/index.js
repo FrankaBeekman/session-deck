@@ -28,6 +28,26 @@ contextBridge.exposeInMainWorld('deck', {
   buffer: (sessionId) => ipcRenderer.invoke('deck:buffer', sessionId),
   gitRepos: (sessionId) => ipcRenderer.invoke('deck:git-repos', sessionId),
   gitDiff: (root, path, group) => ipcRenderer.invoke('deck:git-diff', { root, path, group }),
+  composerState: (uid) => ipcRenderer.invoke('deck:composer-state', uid),
+  composerOutdated: (uid, branch) => ipcRenderer.invoke('deck:composer-outdated', { uid, branch }),
+  workflow: () => ipcRenderer.invoke('deck:workflow'),
+  composerOp: (uid, branch) => ipcRenderer.invoke('deck:composer-op', { uid, branch }),
+  composerUpdate: (uid, branch, packages) => ipcRenderer.invoke('deck:composer-update', { uid, branch, packages }),
+  composerCommit: (uid, branch, message) => ipcRenderer.invoke('deck:composer-commit', { uid, branch, message }),
+  composerPush: (uid, branch) => ipcRenderer.invoke('deck:composer-push', { uid, branch }),
+  composerUndoCommit: (uid, branch) => ipcRenderer.invoke('deck:composer-undoCommit', { uid, branch }),
+  composerDiscard: (uid, branch) => ipcRenderer.invoke('deck:composer-discard', { uid, branch }),
+  composerRetry: (uid, branch) => ipcRenderer.invoke('deck:composer-retry', { uid, branch }),
+  composerDiff: (uid, branch) => ipcRenderer.invoke('deck:composer-diff', { uid, branch }),
+  composerPrompt: (uid, branch) => ipcRenderer.invoke('deck:composer-prompt', { uid, branch }),
+  composerPaste: (uid, branch) => ipcRenderer.invoke('deck:composer-paste', { uid, branch }),
+  onComposerOp: (cb) => {
+    const h = (_e, state) => cb(state)
+    ipcRenderer.on('deck:composer-op', h)
+    return () => ipcRenderer.removeListener('deck:composer-op', h)
+  },
+  setWorkflow: (settings) => ipcRenderer.invoke('deck:set-workflow', settings),
+  setProjectWorkflow: (uid, id) => ipcRenderer.invoke('deck:set-project-workflow', { uid, id }),
 
   // Where a dropped file lives on disk; '' for one that is not a file on disk
   // (an image dragged out of a web page).

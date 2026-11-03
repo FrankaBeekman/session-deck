@@ -293,6 +293,81 @@ own diff (`--cached` versus working tree). Right pane: unified diff, coloured by
 line role. Untracked files diff against `/dev/null` so a new file shows as fully
 added. Diffs are capped at 400KB and marked when truncated.
 
+## Composer updates
+
+*Off by default — Settings → Composer updates.* When a theme or plugin lives in
+its own repo and the project pulls it in with Composer, each environment branch
+of the project repo (`develop`, `staging`, `master`, …) locks its own version.
+The **Composer** link in a focused session opens a dialog with one tab per
+environment, listing:
+
+- **the packages changed on this ticket**, pre-selected: repos edited by any
+  session on the same ticket, plus every package Composer installed as a git
+  clone that has a branch named after the ticket — so it still works after a
+  restart, or for work done outside the deck. Matched to `composer.lock` by
+  remote URL (or the repo's own `composer.json` name). Each shows the locked version, the newest
+  commit on its branch, and where the ticket's work stands: ○ not merged yet,
+  ◑ merged but no release tag, ◐ merged but the lock is behind, ● in the lock.
+  A ticket with several branches (a feedback follow-up) counts the least
+  advanced one. The tab's dot sums its packages up.
+- **every other package `composer.json` requires**, unselected.
+
+Next to each locked version is how tightly `composer.json` holds it on that
+branch: **pinned** to one exact version (a badge; it can't be selected, since
+`composer update` would leave it where it is — changing a pin means editing
+`composer.json`), an **open** constraint with no upper limit like `>=6` (in the
+warning colour: an update can jump a major version), or a normal range.
+
+All of that comes from git — `fetch`, then `git show <branch>:composer.lock` and
+`merge-base --is-ancestor` — so the dialog opens in seconds and never touches a
+working tree. **Check for updates** runs `composer outdated --locked` for one
+tab, against copies of that branch's `composer.json`/`composer.lock` in a temp
+dir; with private VCS repos it can take most of a minute, so it is a button and
+its result is cached in `store.json`. Inside a Local site it uses the site's own
+PHP with Local's bundled Composer; elsewhere `composer` from your shell.
+
+**Which branches are environments** is a *workflow*: *Current branch only*,
+*Test, staging, live* (`develop` · `staging` · `master`), or your own — made in
+*Settings → Workflow → Edit workflows…*, from scratch or as a copy of a built-in
+one. One is the default; a project can pick its own from the dialog. A package's branch is never configured — the lock says it: `dev-staging`
+means its `staging` branch, a version means tags.
+
+**Updating.** The footer shows the `composer update … --no-install` command for
+the selection (with a copy button) and **Update lock on `<branch>`**. Each step
+is its own click:
+
+1. **Update** runs in a worktree the deck owns, under `~/.session-deck/worktrees/`,
+   checked out *detached* at `origin/<branch>`. Your checkout, its `vendor/` and
+   your local branches are never touched — a local `develop` with unpushed
+   commits of its own stays as it is. `--no-install --no-scripts --no-plugins`
+   means only the lock changes: there is no `vendor/` there for a script to use.
+   A new update is refused while the last one is uncommitted or unpushed.
+2. **Review** lists what changed in the lock, warns about packages that moved
+   without being selected (a shared dependency) and files other than the lock,
+   and offers an editable commit message: `<ticket> composer update <packages>`.
+   **Show lock diff** swaps the package list for the full diff of the worktree
+   against `origin/<branch>` — before the commit and after it. A line in the
+   footer says the work happens in that separate worktree, with its path to copy.
+3. **Commit** commits tracked changes only. **Undo commit** goes back to review.
+4. **Push** is `git push origin HEAD:refs/heads/<branch>`, never forced: if the
+   branch moved meanwhile, it fails rather than overwrite anyone's work.
+
+Every step is logged with its command, live output (redacted, like the hook
+log), duration and exit code; the log opens by itself while a step runs or
+fails. A failed step offers **Copy prompt for Claude** — what ran, where, and
+the full error, asking for a fix in that worktree without committing — and
+**Paste into session**, which types it into the session's terminal as a
+bracketed paste, so it is not sent until you press Enter. **Retry** runs the
+failed step again in the same worktree, keeping any fix made there; a failed
+undo or push is retried as that, never as a fresh start. Every escape sequence
+and control character is stripped from the output as it is logged, so nothing
+in a pasted prompt can end the paste early and type into the session.
+
+Closing the dialog, or the app, loses nothing: on reopening, an updated lock
+that was not committed, or a commit that was not pushed, is picked up from the
+worktree. Pins are never changed from the dialog; that stays a manual edit of
+`composer.json`, and *hide pinned* takes them out of the list.
+
 ## Closing, reopening, removing
 
 - **End session** kills the PTY. The tile stays as *Closed*, across restarts too.
