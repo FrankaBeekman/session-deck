@@ -12,6 +12,7 @@ import WorkLogPanel from './components/WorkLogPanel.jsx'
 import UpdatePanel from './components/UpdatePanel.jsx'
 import Settings, { bgUrl } from './components/Settings.jsx'
 import NowPlaying from './components/NowPlaying.jsx'
+import ReadAloud from './components/ReadAloud.jsx'
 import { applyTheme } from './themes.js'
 import { SkinContext } from './components/SkinFrame.jsx'
 import { ipcError } from './lib/format.js'
@@ -40,7 +41,13 @@ const DEFAULTS = {
   // macOS ask for Automation permission at all.
   nowPlaying: false,
   // Lock updates per environment branch, in a dialog per session. Opt-in.
-  composerUpdates: false
+  composerUpdates: false,
+  // A play button per session that reads Claude's latest reply aloud. Opt-in;
+  // it only ever speaks when pressed.
+  readAloud: false,
+  readAloudRate: 1,
+  readAloudVoice: '',
+  readAloudPauseMusic: true
 }
 
 const prefersDark = () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
@@ -68,6 +75,7 @@ export default function App() {
   const [diffUid, setDiffUid] = useState(null)
   const [composerUid, setComposerUid] = useState(null)
   const [summaryUid, setSummaryUid] = useState(null)
+  const [readUid, setReadUid] = useState(null)
   const [todoUid, setTodoUid] = useState(null)
   const [procUid, setProcUid] = useState(null)
   const [worklogOpen, setWorklogOpen] = useState(false)
@@ -131,6 +139,7 @@ export default function App() {
     const onKey = (e) => {
       if (e.key !== 'Escape') return
       if (links) return setLinks(null)
+      if (readUid) return setReadUid(null)
       if (summaryUid) return setSummaryUid(null)
       if (diffUid) return setDiffUid(null)
       if (composerUid) return setComposerUid(null)
@@ -144,7 +153,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [links, summaryUid, diffUid, composerUid, todoUid, procUid, updateOpen, worklogOpen, settingsOpen, picking])
+  }, [links, readUid, summaryUid, diffUid, composerUid, todoUid, procUid, updateOpen, worklogOpen, settingsOpen, picking])
 
   const reopen = useCallback(async (uid) => {
     try {
@@ -174,6 +183,7 @@ export default function App() {
   const diffSession = byUid(diffUid)
   const composerSession = settings.composerUpdates ? byUid(composerUid) : null
   const summarySession = byUid(summaryUid)
+  const readSession = settings.readAloud ? byUid(readUid) : null
   const todoSession = byUid(todoUid)
   const procSession = byUid(procUid)
   const running = sessions.filter((s) => s.attached || (s.external && s.status !== 'closed')).length
@@ -186,6 +196,7 @@ export default function App() {
     onShowDiff: () => setDiffUid(s.uid),
     onShowComposer: settings.composerUpdates ? () => setComposerUid(s.uid) : null,
     onShowSummary: () => setSummaryUid(s.uid),
+    onReadAloud: settings.readAloud ? () => setReadUid(s.uid) : null,
     onShowTodos: () => setTodoUid(s.uid),
     onShowProcesses: () => setProcUid(s.uid),
     onReopen: () => reopen(s.uid)
@@ -263,6 +274,16 @@ export default function App() {
         )}
         {/* After the focused view, so a panel opened from it stacks on top. */}
         {summarySession && <SummaryPanel session={summarySession} onClose={() => setSummaryUid(null)} />}
+        {readSession && (
+          <ReadAloud
+            session={readSession}
+            rate={settings.readAloudRate ?? 1}
+            voice={settings.readAloudVoice ?? ''}
+            pauseMusic={settings.nowPlaying && settings.readAloudPauseMusic !== false}
+            onRate={(r) => setSettings((prev) => ({ ...prev, readAloudRate: r }))}
+            onClose={() => setReadUid(null)}
+          />
+        )}
         {diffSession && <DiffPanel session={diffSession} onClose={() => setDiffUid(null)} />}
         {composerSession && <ComposerPanel session={composerSession} onClose={() => setComposerUid(null)} />}
         {todoSession && <ChecklistPanel session={todoSession} onClose={() => setTodoUid(null)} />}

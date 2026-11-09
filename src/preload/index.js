@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('deck', {
   setTicketBase: (url) => ipcRenderer.invoke('deck:set-ticket-base', url),
   worklogDays: () => ipcRenderer.invoke('deck:worklog-days'),
   worklog: (day) => ipcRenderer.invoke('deck:worklog', day),
+  reply: (uid) => ipcRenderer.invoke('deck:reply', uid),
   summary: (uid) => ipcRenderer.invoke('deck:summary', uid),
   summarize: (uid) => ipcRenderer.invoke('deck:summarize', uid),
   setTicket: (key, ticket) => ipcRenderer.invoke('deck:set-ticket', { key, ticket }),

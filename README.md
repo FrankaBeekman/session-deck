@@ -597,6 +597,33 @@ then runs one `claude -p` on Haiku with:
 `--bare` would skip hooks too, but only accepts an API key, not a subscription
 login.
 
+## Read aloud
+
+Opt-in (Settings → *Read aloud*, off by default). Each session gets a **▶ Read
+aloud** link that reads Claude's latest reply aloud in a dialog that shows the
+text along with it: the sentence being read is highlighted, the word within it
+underlined, and sentences already read fade. It only ever speaks when pressed.
+
+- **What is read:** the text after the last tool call of the latest turn — the
+  conclusion, not the narration on the way there. When Claude is waiting on a
+  question (AskUserQuestion), the text before it plus the question and its
+  options. `lastReply` in `src/main/transcript.js` reads the last 4MB only.
+- **Made for listening:** `src/renderer/src/lib/speech.js` turns the Markdown
+  into sentences: paths in code spans become their file name, links their text
+  (bare URLs "a link to host"), long hashes their first seven characters,
+  table rows a list of cells. Code blocks are shown, not read. What is shown is
+  exactly what is spoken.
+- **Controls:** Play/Pause (Space), Back/Next sentence (← →), click a sentence
+  to jump there, speed 0.75×–2× (changing it carries on from the current word),
+  *Latest* to load a newer reply. Closing stops it.
+- **Voice:** the system's voices through the Web Speech API — offline, nothing
+  leaves the machine. Settings has a voice picker with a *Try* button.
+- **Music:** with *Now playing* on, a playing Spotify or Apple Music pauses while
+  it reads and plays again afterwards — only when the deck paused it.
+
+Spoken a sentence at a time: pausing, skipping and a new speed all restart
+from a known place, which pausing the engine mid-utterance does not give.
+
 ## Now playing
 
 *Settings → Now playing* puts Spotify or Apple Music in the title bar: cover,
