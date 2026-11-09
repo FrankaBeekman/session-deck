@@ -4,6 +4,8 @@ import { THEMES, swatchFor } from '../themes.js'
 import { SKINS } from '../skins.js'
 import SkinFrame from './SkinFrame.jsx'
 import WorkflowSettings from './WorkflowSettings.jsx'
+import { findVoice } from './ReadAloud.jsx'
+import { RATES } from '../lib/speech.js'
 
 export const bgUrl = (path) => `deckbg://img/${encodeURIComponent(path)}`
 
@@ -61,6 +63,53 @@ function Segmented({ value, onChange, options, name }) {
           {o.label}
         </button>
       ))}
+    </div>
+  )
+}
+
+/** The system's voices; they arrive a moment after the first ask. */
+function useVoices() {
+  const [voices, setVoices] = useState(() => window.speechSynthesis?.getVoices() ?? [])
+  useEffect(() => {
+    const synth = window.speechSynthesis
+    if (!synth) return
+    const update = () => setVoices(synth.getVoices())
+    synth.addEventListener('voiceschanged', update)
+    update()
+    return () => synth.removeEventListener('voiceschanged', update)
+  }, [])
+  return voices
+}
+
+function VoicePicker({ value, rate, onChange }) {
+  const voices = useVoices()
+  const sorted = [...voices].sort((a, b) => a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name))
+  const tryIt = () => {
+    const synth = window.speechSynthesis
+    if (!synth) return
+    synth.cancel()
+    const u = new SpeechSynthesisUtterance('This is how Claude’s replies will sound.')
+    const v = findVoice(value)
+    if (v) {
+      u.voice = v
+      u.lang = v.lang
+    }
+    u.rate = rate
+    synth.speak(u)
+  }
+  return (
+    <div className="wfrow">
+      <select className="wfselect" value={value} onChange={(e) => onChange(e.target.value)} aria-label="Voice">
+        <option value="">System default</option>
+        {sorted.map((v) => (
+          <option key={v.voiceURI} value={v.voiceURI}>
+            {v.name} ({v.lang})
+          </option>
+        ))}
+      </select>
+      <button className="closeb" type="button" onClick={tryIt}>
+        Try
+      </button>
     </div>
   )
 }
@@ -232,6 +281,40 @@ export default function Settings({ settings, onChange, onClose, version, onCheck
                 onChange={(v) => onChange({ nowPlaying: v === 'on' })}
               />
             </Row>
+          )}
+
+          <Row label="Read aloud" hint="a ▶ per session that reads Claude’s latest reply aloud, with the text to read along">
+            <Segmented
+              name="Read aloud"
+              value={settings.readAloud ? 'on' : 'off'}
+              options={ENABLED}
+              onChange={(v) => onChange({ readAloud: v === 'on' })}
+            />
+          </Row>
+          {settings.readAloud && (
+            <>
+              <Row label="Voice" hint="the voices installed on this computer">
+                <VoicePicker value={settings.readAloudVoice ?? ''} rate={settings.readAloudRate ?? 1} onChange={(v) => onChange({ readAloudVoice: v })} />
+              </Row>
+              <Row label="Speed" hint="also changeable while it reads">
+                <Segmented
+                  name="Speed"
+                  value={String(settings.readAloudRate ?? 1)}
+                  options={RATES.map((r) => ({ key: String(r), label: `${r}×` }))}
+                  onChange={(v) => onChange({ readAloudRate: Number(v) })}
+                />
+              </Row>
+              {window.deck.platform === 'darwin' && (
+                <Row label="Pause music" hint={settings.nowPlaying ? 'while it reads; plays again when done' : 'needs Now playing to be on'}>
+                  <Segmented
+                    name="Pause music while reading"
+                    value={settings.readAloudPauseMusic !== false ? 'on' : 'off'}
+                    options={ENABLED}
+                    onChange={(v) => onChange({ readAloudPauseMusic: v === 'on' })}
+                  />
+                </Row>
+              )}
+            </>
           )}
 
           <Row label="Composer updates" hint="per session: update composer.lock on each environment branch">

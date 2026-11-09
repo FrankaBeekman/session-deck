@@ -155,3 +155,96 @@ export function transcriptDigest(path, max = 120_000) {
   const tail = text.slice(-Math.round(max * 0.75))
   return `${head}\n\n[… the middle of the session is left out …]\n\n${tail}`
 }
+
+const TAIL = 4 * 1024 * 1024
+
+/** A user entry that is something the person typed, not a tool result or a wrapper. */
+function isPrompt(entry) {
+  // A compaction summary continues the conversation; it starts no new turn.
+  if (entry.type !== 'user' || entry.isSidechain || entry.isMeta || entry.isCompactSummary) return false
+  const c = entry.message?.content
+  if (typeof c === 'string') return Boolean(c.trim()) && !c.trim().startsWith('<')
+  if (!Array.isArray(c) || c.some((b) => b?.type === 'tool_result')) return false
+  return c.some((b) => b?.type === 'text' && b.text?.trim() && !b.text.trim().startsWith('<'))
+}
+
+/** An AskUserQuestion call as text to read: each question, then its options. */
+function questionsText(input) {
+  return (Array.isArray(input?.questions) ? input.questions : [])
+    .map((q) => {
+      const options = (Array.isArray(q?.options) ? q.options : []).map((o) => `- ${o?.label ?? ''}${o?.description ? `: ${o.description}` : ''}`)
+      return [String(q?.question ?? ''), ...options].filter(Boolean).join('\n')
+    })
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+/**
+ * Claude's latest reply, to read aloud: the text after the last tool call of
+ * the latest turn — the conclusion, not the narration on the way there. When
+ * the turn ends on a question still waiting for an answer, the text before it
+ * and the question itself. Only the tail of the file is read.
+ *
+ * Returns `{ text, at }`, or null when there is no reply yet.
+ */
+export function lastReply(path) {
+  let fd
+  let lines
+  try {
+    fd = openSync(path, 'r')
+    const size = fstatSync(fd).size
+    const start = Math.max(0, size - TAIL)
+    const buf = Buffer.alloc(size - start)
+    const n = readSync(fd, buf, 0, buf.length, start)
+    lines = buf.subarray(0, n).toString('utf8').split('\n')
+    if (start > 0) lines.shift() // starts mid-line
+  } catch {
+    return null
+  } finally {
+    if (fd !== undefined) try { closeSync(fd) } catch {}
+  }
+
+  // The latest turn: everything after the last prompt.
+  let blocks = []
+  const answered = new Set()
+  for (const line of lines) {
+    if (!line.includes('"type":"user"') && !line.includes('"type":"assistant"')) continue
+    let entry
+    try {
+      entry = JSON.parse(line)
+    } catch {
+      continue
+    }
+    if (entry.isSidechain) continue
+    if (isPrompt(entry)) {
+      blocks = []
+      continue
+    }
+    const content = entry.message?.content
+    if (entry.type === 'user') {
+      for (const b of Array.isArray(content) ? content : []) if (b?.type === 'tool_result') answered.add(b.tool_use_id)
+      continue
+    }
+    if (entry.type !== 'assistant') continue
+    for (const b of typeof content === 'string' ? [{ type: 'text', text: content }] : Array.isArray(content) ? content : []) {
+      if (b?.type === 'text' && b.text?.trim()) blocks.push({ type: 'text', text: b.text.trim(), at: entry.timestamp })
+      else if (b?.type === 'tool_use') blocks.push({ type: 'tool', id: b.id, name: b.name, input: b.input, at: entry.timestamp })
+    }
+  }
+
+  const lastTool = blocks.findLastIndex((b) => b.type === 'tool')
+  const waiting = lastTool >= 0 && blocks[lastTool].name === 'AskUserQuestion' && !answered.has(blocks[lastTool].id)
+  let parts
+  if (waiting) {
+    const before = blocks.slice(0, lastTool).findLastIndex((b) => b.type === 'tool')
+    parts = [...blocks.slice(before + 1, lastTool).map((b) => b.text), questionsText(blocks[lastTool].input)]
+  } else {
+    parts = blocks.slice(lastTool + 1).map((b) => b.text)
+    // Still working, nothing said since the last tool: the last thing it did say.
+    if (!parts.length) parts = blocks.filter((b) => b.type === 'text').slice(-1).map((b) => b.text)
+  }
+  const text = parts.filter(Boolean).join('\n\n').trim()
+  if (!text) return null
+  const at = Date.parse(blocks.at(-1)?.at ?? '') || null
+  return { text, at }
+}

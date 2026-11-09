@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto'
 import { launchSession, cleanupLaunch, COLS, ROWS } from './launcher.js'
 import { getProject, projectForDirectory } from './local.js'
 import { load, save, flush } from './store.js'
-import { firstUserMessage, scanTitles, transcriptDigest } from './transcript.js'
+import { firstUserMessage, scanTitles, transcriptDigest, lastReply } from './transcript.js'
 import { primaryRepo } from './git.js'
 import { snapshot, claudeAncestor, claudeShells, appFor, focusApp, killTree } from './proc.js'
 import * as worklog from './worklog.js'
@@ -838,6 +838,13 @@ class Registry extends EventEmitter {
   transcriptOf(s) {
     const path = s.transcriptPath && existsSync(s.transcriptPath) ? s.transcriptPath : locateTranscript(s.id)
     return path ?? null
+  }
+
+  /** Claude's latest reply in a session, to read aloud. */
+  replyFor(id) {
+    const s = this.resolve(id)
+    const path = s && this.transcriptOf(s)
+    return path ? lastReply(path) : null
   }
 
   /** The saved summary, and whether the conversation has moved on since. */
